@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Co — designa, animera och publicera webbplatser i världsklass utan kod. Inspirerad av det bästa inom modern webbdesign." />
+  <title>Co — Bygg webben utan gränser</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Animated gradient background -->
+  <div class="bg-mesh" aria-hidden="true">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+
+  <!-- Navigation -->
+  <header class="nav" id="nav">
+    <div class="nav-inner">
+      <a href="#" class="logo">
+        <span class="logo-mark"></span>
+        Co
+      </a>
+      <nav class="nav-links">
+        <a href="#features">Funktioner</a>
+        <a href="#showcase">Showcase</a>
+        <a href="#pricing">Priser</a>
+        <a href="#faq">Frågor</a>
+      </nav>
+      <div class="nav-actions">
+        <a href="#" class="btn btn-ghost">Logga in</a>
+        <a href="#" class="btn btn-primary">Kom igång</a>
+      </div>
+      <button class="nav-toggle" aria-label="Meny" id="navToggle">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <section class="hero">
+      <div class="container">
+        <div class="badge reveal" data-reveal>
+          <span class="badge-dot"></span>
+          Nytt · AI-driven layoutmotor
+        </div>
+        <h1 class="hero-title reveal" data-reveal>
+          Designa webben<br />
+          <span class="gradient-text">utan gränser.</span>
+        </h1>
+        <p class="hero-sub reveal" data-reveal>
+          Co förenar design, animation och publicering i ett enda verktyg.
+          Bygg pixelperfekta, blixtsnabba webbplatser — direkt i webbläsaren, helt utan kod.
+        </p>
+        <div class="hero-cta reveal" data-reveal>
+          <a href="#" class="btn btn-primary btn-lg">Börja bygga gratis</a>
+          <a href="#showcase" class="btn btn-ghost btn-lg">Se exempel →</a>
+        </div>
+        <div class="hero-meta reveal" data-reveal>
+          <div class="avatars">
+            <span class="avatar"></span>
+            <span class="avatar"></span>
+            <span class="avatar"></span>
+            <span class="avatar"></span>
+          </div>
+          Älskad av 40&nbsp;000+ designers och team
+        </div>
+      </div>
+
+      <!-- Floating preview card -->
+      <div class="hero-visual reveal" data-reveal>
+        <div class="window" id="tiltCard">
+          <div class="window-bar">
+            <span class="dot red"></span>
+            <span class="dot yellow"></span>
+            <span class="dot green"></span>
+            <span class="window-url">co.studio/projekt</span>
+          </div>
+          <div class="window-body">
+            <div class="canvas">
+              <div class="canvas-block b1"></div>
+              <div class="canvas-block b2"></div>
+              <div class="canvas-block b3"></div>
+              <div class="canvas-block b4"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Logo strip -->
+    <section class="logos reveal" data-reveal>
+      <div class="container">
+        <p class="logos-label">Driver team på</p>
+        <div class="logos-row">
+          <span>Northwind</span>
+          <span>Lumen</span>
+          <span>Vertex</span>
+          <span>Aurora</span>
+          <span>Helios</span>
+          <span>Monarch</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section" id="features">
+      <div class="container">
+        <div class="section-head reveal" data-reveal>
+          <span class="eyebrow">Funktioner</span>
+          <h2>Allt du behöver för att skeppa snabbare.</h2>
+          <p>Ett verktyg som ersätter tre. Från första skiss till publicerad sida.</p>
+        </div>
+        <div class="grid">
+          <article class="card reveal" data-reveal>
+            <div class="card-icon">✦</div>
+            <h3>Visuell canvas</h3>
+            <p>Dra, släpp och justera med pixelprecision. Det du ser är exakt det som publiceras.</p>
+          </article>
+          <article class="card reveal" data-reveal>
+            <div class="card-icon">⚡</div>
+            <h3>Animeringar på riktigt</h3>
+            <p>Scroll-effekter, övergångar och mikrointeraktioner — utan en enda rad JavaScript.</p>
+          </article>
+          <article class="card reveal" data-reveal>
+            <div class="card-icon">◈</div>
+            <h3>Responsivt direkt</h3>
+            <p>Designa en gång. Co anpassar automatiskt layouten för mobil, platta och desktop.</p>
+          </article>
+          <article class="card reveal" data-reveal>
+            <div class="card-icon">⚙</div>
+            <h3>CMS &amp; data</h3>
+            <p>Koppla innehåll, samlingar och formulär. Dynamiskt utan en backend att underhålla.</p>
+          </article>
+          <article class="card reveal" data-reveal>
+            <div class="card-icon">⬢</div>
+            <h3>Blixtsnabb hosting</h3>
+            <p>Global CDN, automatisk optimering och 99,99&nbsp;% drifttid. Publicera med ett klick.</p>
+          </article>
+          <article class="card reveal" data-reveal>
+            <div class="card-icon">✶</div>
+            <h3>Realtidssamarbete</h3>
+            <p>Bjud in teamet och designa tillsammans live — kommentarer, roller och versioner.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Showcase / split -->
+    <section class="section showcase" id="showcase">
+      <div class="container split">
+        <div class="split-text reveal" data-reveal>
+          <span class="eyebrow">Showcase</span>
+          <h2>Från idé till live på minuter.</h2>
+          <p>
+            Starta från en tom canvas eller en av hundratals mallar. Co tar hand om
+            koden, prestandan och tillgängligheten så att du kan fokusera på idén.
+          </p>
+          <ul class="check-list">
+            <li>Semantisk, ren HTML under huven</li>
+            <li>SEO och Open Graph automatiskt</li>
+            <li>Exportera koden när du vill</li>
+          </ul>
+          <a href="#" class="btn btn-primary">Utforska mallar</a>
+        </div>
+        <div class="split-visual reveal" data-reveal>
+          <div class="stat-grid">
+            <div class="stat">
+              <span class="stat-num" data-count="98">0</span>
+              <span class="stat-label">Performance score</span>
+            </div>
+            <div class="stat">
+              <span class="stat-num" data-count="120" data-suffix="ms">0</span>
+              <span class="stat-label">Genomsnittlig laddtid</span>
+            </div>
+            <div class="stat">
+              <span class="stat-num" data-count="40" data-suffix="k+">0</span>
+              <span class="stat-label">Aktiva byggare</span>
+            </div>
+            <div class="stat">
+              <span class="stat-num" data-count="99" data-suffix="%">0</span>
+              <span class="stat-label">Drifttid</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pricing -->
+    <section class="section" id="pricing">
+      <div class="container">
+        <div class="section-head reveal" data-reveal>
+          <span class="eyebrow">Priser</span>
+          <h2>Enkelt. Transparent. Skalbart.</h2>
+          <p>Börja gratis. Uppgradera när du växer.</p>
+        </div>
+        <div class="pricing-grid">
+          <article class="price-card reveal" data-reveal>
+            <h3>Start</h3>
+            <div class="price">0&nbsp;kr<span>/mån</span></div>
+            <p class="price-desc">För personliga projekt och experiment.</p>
+            <ul>
+              <li>1 projekt</li>
+              <li>Co-subdomän</li>
+              <li>Community-support</li>
+            </ul>
+            <a href="#" class="btn btn-ghost btn-block">Välj Start</a>
+          </article>
+          <article class="price-card featured reveal" data-reveal>
+            <div class="price-tag">Populärast</div>
+            <h3>Pro</h3>
+            <div class="price">149&nbsp;kr<span>/mån</span></div>
+            <p class="price-desc">För frilansare och små team som bygger på riktigt.</p>
+            <ul>
+              <li>Obegränsade projekt</li>
+              <li>Egen domän</li>
+              <li>CMS &amp; formulär</li>
+              <li>Avancerade animeringar</li>
+            </ul>
+            <a href="#" class="btn btn-primary btn-block">Välj Pro</a>
+          </article>
+          <article class="price-card reveal" data-reveal>
+            <h3>Team</h3>
+            <div class="price">399&nbsp;kr<span>/mån</span></div>
+            <p class="price-desc">För organisationer med flera samarbetspartners.</p>
+            <ul>
+              <li>Allt i Pro</li>
+              <li>Realtidssamarbete</li>
+              <li>Roller &amp; behörigheter</li>
+              <li>Prioriterad support</li>
+            </ul>
+            <a href="#" class="btn btn-ghost btn-block">Välj Team</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section" id="faq">
+      <div class="container narrow">
+        <div class="section-head reveal" data-reveal>
+          <span class="eyebrow">Frågor &amp; svar</span>
+          <h2>Vanliga frågor</h2>
+        </div>
+        <div class="faq-list">
+          <details class="faq-item reveal" data-reveal>
+            <summary>Behöver jag kunna koda?</summary>
+            <p>Nej. Co är helt visuellt. Vill du ändå se eller exportera koden går det utmärkt.</p>
+          </details>
+          <details class="faq-item reveal" data-reveal>
+            <summary>Kan jag använda min egen domän?</summary>
+            <p>Ja, från Pro-planen och uppåt kopplar du valfri domän med automatiskt SSL.</p>
+          </details>
+          <details class="faq-item reveal" data-reveal>
+            <summary>Hur snabba är sidorna?</summary>
+            <p>Allt serveras via globalt CDN med automatisk bild- och kodoptimering för toppresultat.</p>
+          </details>
+          <details class="faq-item reveal" data-reveal>
+            <summary>Kan teamet jobba samtidigt?</summary>
+            <p>Absolut. Realtidssamarbete med kommentarer och versionshistorik ingår i Team-planen.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section">
+      <div class="container">
+        <div class="cta-box reveal" data-reveal>
+          <h2>Redo att bygga något fantastiskt?</h2>
+          <p>Skapa ditt första projekt på under en minut. Inget kreditkort krävs.</p>
+          <a href="#" class="btn btn-primary btn-lg">Kom igång gratis</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <a href="#" class="logo"><span class="logo-mark"></span>Co</a>
+        <p>Bygg webben utan gränser.</p>
+      </div>
+      <div class="footer-cols">
+        <div class="footer-col">
+          <h4>Produkt</h4>
+          <a href="#features">Funktioner</a>
+          <a href="#pricing">Priser</a>
+          <a href="#showcase">Showcase</a>
+        </div>
+        <div class="footer-col">
+          <h4>Företag</h4>
+          <a href="#">Om oss</a>
+          <a href="#">Blogg</a>
+          <a href="#">Karriär</a>
+        </div>
+        <div class="footer-col">
+          <h4>Resurser</h4>
+          <a href="#">Hjälp</a>
+          <a href="#">Community</a>
+          <a href="#">Status</a>
+        </div>
+      </div>
+    </div>
+    <div class="container footer-bottom">
+      <span>© 2026 Co. Alla rättigheter förbehållna.</span>
+      <span>Byggd med ❤️ och en gradient.</span>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
