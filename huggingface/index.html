@@ -374,6 +374,9 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
 .decl-table tr.total td.num { font-size: 1.1rem; }
 .adv summary { cursor: pointer; font-weight: 700; padding: 6px 0; color: var(--brand); }
 
+.share-panel h2 { margin-bottom: 4px; }
+.share-panel p { margin-bottom: 14px; }
+
 .callout {
   background: var(--blue-bg); border: 1px solid #cfe0fa; border-radius: 14px;
   padding: 16px 18px; font-size: 0.94rem; color: #1b4a82; margin-bottom: 16px;
@@ -552,6 +555,7 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
           </div>
 
           <div class="deadline-actions">
+            <button class="btn-ghost js-share"><svg class="ic"><use href="#i-doc"/></svg> Skicka till revisor</button>
             <button class="btn-ghost" id="icsBtn"><svg class="ic"><use href="#i-cal"/></svg> Lägg till i kalender</button>
             <button class="btn-ghost" id="notifyBtn"><svg class="ic"><use href="#i-bell"/></svg> Aktivera påminnelser</button>
           </div>
@@ -724,9 +728,16 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
           </div>
 
           <div class="panel form-card">
-            <div class="field">
-              <label for="cWhat">Vad gäller det?</label>
-              <input type="text" id="cWhat" placeholder="t.ex. Såld vara" autocomplete="off" />
+            <div class="grid-2">
+              <div class="field">
+                <label for="cWhat">Vad gäller det?</label>
+                <input type="text" id="cWhat" placeholder="t.ex. Såld vara" autocomplete="off" />
+              </div>
+              <div class="field">
+                <label for="cDate">Datum</label>
+                <input type="date" id="cDate" />
+                <p class="field-help">Datumet du betalade eller fick betalt.</p>
+              </div>
             </div>
 
             <div class="seg" role="radiogroup" aria-label="Typ av händelse">
@@ -815,7 +826,14 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
             och skriv in beloppen ovan i rutorna med samma nummer. Stäm av mot dina kvitton först.
           </div>
 
-          <button class="btn-ghost" id="exportBtn"><svg class="ic"><use href="#i-doc"/></svg> Exportera underlag (.csv)</button>
+          <div class="panel share-panel">
+            <h2>Skicka till din revisor</h2>
+            <p class="muted small">Hela kvartalet samlas i <strong>en fil</strong> — alla kvitton plus momssummorna ovan. Du kan sms:a eller mejla den direkt.</p>
+            <div class="form-actions">
+              <button class="btn-primary js-share"><svg class="ic"><use href="#i-doc"/></svg> Skicka hela kvartalet</button>
+              <button class="btn-ghost" id="downloadBtn">Ladda ner som fil</button>
+            </div>
+          </div>
         </section>
 
         <!-- ===================== ANTECKNINGAR ===================== -->
@@ -1230,7 +1248,7 @@ function renderCalcList() {
     row.innerHTML = `
       <div class="calc-row-main">
         <div class="calc-row-title">${esc(c.label)} <span class="receipt-tag ${isSale ? 'tag-in' : 'tag-out'}">${isSale ? 'Försäljning' : 'Inköp'}</span></div>
-        <div class="calc-row-meta">${esc(fmtDateTime(c.ts))} · ${c.rate}% moms · exkl ${kr(c.exkl)}</div>
+        <div class="calc-row-meta">${esc(c.date ? fmtDate(c.date) : fmtDateTime(c.ts))} · ${c.rate}% moms · exkl ${kr(c.exkl)}</div>
       </div>
       <div class="calc-row-amt">
         <div class="a">${kr(c.total)}</div>
@@ -1256,13 +1274,17 @@ function bookCalc(id) {
   const rid = 'r' + Date.now() + Math.random().toString(36).slice(2, 6);
   state.receipts.push({
     id: rid, verNr: nextVerNr(),
-    date: new Date(c.ts).toISOString().slice(0, 10),
+    date: c.date || new Date(c.ts).toISOString().slice(0, 10),
     type: c.type, party: c.label || 'Kalkylator', desc: c.label || 'Uträkning',
     exkl: c.exkl, vat: c.vat, total: c.total, rate: c.rate,
     fileData: '', note: 'Från momskalkylatorn', createdAt: new Date().toISOString(),
   });
   c.bookedId = rid;
-  save(); renderAll(); toast('Tillagt som kvitto ✓');
+  // Show the period the receipt landed in, so it's never "invisible".
+  const k = currentPeriodKey(state.settings.period, new Date((c.date || new Date(c.ts).toISOString().slice(0, 10)) + 'T00:00:00'));
+  state.activePeriod = (k === currentPeriodKey(state.settings.period)) ? null : k;
+  save(); renderAll();
+  toast(`Tillagt som kvitto i ${periodLabel(state.settings.period, k)} ✓`);
 }
 
 function renderDeclaration() {
@@ -1413,7 +1435,9 @@ function setupCalculator() {
   const incl = document.getElementById('cIncl');
   const rate = document.getElementById('cRate');
   const what = document.getElementById('cWhat');
+  const dateEl = document.getElementById('cDate');
   const view = document.getElementById('view-kalkylator');
+  dateEl.value = new Date().toISOString().slice(0, 10);
 
   const read = () => ({
     amount: parseFloat(String(amount.value).replace(',', '.')) || 0,
@@ -1421,6 +1445,7 @@ function setupCalculator() {
     rate: Number(rate.value),
     type: view.querySelector('input[name="ctype"]:checked').value,
     label: what.value.trim() || 'Uträkning',
+    date: dateEl.value || new Date().toISOString().slice(0, 10),
   });
   const update = () => {
     const v = read();
@@ -1446,12 +1471,13 @@ function setupCalculator() {
     const c = computeVat(v.amount, v.rate, v.inclusive);
     state.calculations.push({
       id: 'c' + Date.now() + Math.random().toString(36).slice(2, 6),
-      ts: Date.now(),
+      ts: Date.now(), date: v.date,
       label: v.label, type: v.type, amount: v.amount, inclusive: v.inclusive, rate: v.rate,
       exkl: c.exkl, vat: c.vat, total: c.total, bookedId: null,
     });
     save();
     amount.value = ''; what.value = '';
+    dateEl.value = new Date().toISOString().slice(0, 10);
     update(); renderCalcList();
     toast('Uträkning sparad ✓');
   });
@@ -1691,6 +1717,13 @@ function analyzeStripe(rows) {
     }
     // refunds / adjustments / zero rows are ignored
   }
+  // Keep a payout together: align standalone fee rows to the sale's date so a
+  // fee and its sale never split across two quarters.
+  const saleDates = items.filter(i => i.kind === 'sale').map(i => i.date).sort();
+  if (saleDates.length) {
+    const anchor = saleDates[saleDates.length - 1];
+    for (const it of items) if (it.kind === 'fee') it.date = anchor;
+  }
   return { items, curWarn, invoiceLike, headers };
 }
 
@@ -1833,22 +1866,78 @@ function setupHints() {
     h.addEventListener('click', () => toast(h.dataset.hint, 3500)));
 }
 
+// Build a full-quarter report (summary + every receipt) for the accountant.
+function buildQuarterReport() {
+  const t = declTotals();
+  const dl = state.settings.deadlineOverride
+    ? new Date(state.settings.deadlineOverride + 'T00:00:00')
+    : deadlineFor(state.settings.period, activeKey());
+  const dlStr = `${dl.getDate()} ${MONTHS[dl.getMonth()]} ${dl.getFullYear()}`;
+  const rs = receiptsInPeriod();
+  const L = (...cells) => cells.map(csvCell).join(';');
+  const lines = [
+    L('Momsunderlag', state.settings.name || ''),
+    L('Org.nr/personnr', state.settings.org || ''),
+    L('Period', periodLabel(state.settings.period, activeKey())),
+    L('Deadline (kontrollera hos Skatteverket)', dlStr),
+    L('Redovisningsmetod', 'Bokslutsmetoden – moms redovisas vid betalning'),
+    '',
+    L('Momsdeklaration (rutor)', 'Belopp kr'),
+    L('05  Momspliktig försäljning (exkl. moms)', Math.round(t.sales)),
+    L('10  Utgående moms 25%', Math.round(t.u25)),
+    L('11  Utgående moms 12%', Math.round(t.u12)),
+    L('12  Utgående moms 6%', Math.round(t.u6)),
+    L('48  Ingående moms att dra av', Math.round(t.ing)),
+    L(`49  Moms att ${t.toPay >= 0 ? 'betala' : 'få tillbaka'}`, Math.round(Math.abs(t.toPay))),
+    '',
+    L(`Verifikationer (${rs.length} st)`),
+    L('Vernr', 'Datum', 'Typ', 'Motpart', 'Vad avser', 'Exkl moms', 'Momssats', 'Moms', 'Totalt', 'Anteckning'),
+    ...rs.map(r => L(
+      r.verNr, r.date, r.type === 'forsaljning' ? 'Försäljning' : 'Inköp',
+      r.party, r.desc, r.exkl.toFixed(2), r.rate + '%', r.vat.toFixed(2), r.total.toFixed(2), r.note || ''
+    )),
+  ];
+  return '﻿' + lines.join('\r\n');
+}
+
+function quarterFilename() {
+  const safe = (state.settings.name || 'moms').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'moms';
+  return `momsunderlag-${safe}-${activeKey()}.csv`;
+}
+
 function setupExport() {
-  document.getElementById('exportBtn').addEventListener('click', () => {
-    const rs = receiptsInPeriod();
-    const header = 'Vernr;Datum;Typ;Motpart;Beskrivning;Exkl moms;Momssats;Moms;Totalt';
-    const lines = rs.map(r => [
-      r.verNr, r.date, r.type, r.party, r.desc,
-      r.exkl.toFixed(2), r.rate + '%', r.vat.toFixed(2), r.total.toFixed(2)
-    ].map(csvCell).join(';'));
-    const csv = '﻿' + [header, ...lines].join('\r\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const download = () => {
+    const blob = new Blob([buildQuarterReport()], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `moms-underlag-${activeKey()}.csv`;
+    a.download = quarterFilename();
     a.click();
-    toast('Underlag exporterat ✓');
-  });
+    toast('Filen laddades ner ✓');
+  };
+
+  const share = async () => {
+    const csv = buildQuarterReport();
+    const fname = quarterFilename();
+    const period = periodLabel(state.settings.period, activeKey());
+    try {
+      const file = new File([csv], fname, { type: 'text/csv' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `Momsunderlag ${period}`,
+          text: `Momsunderlag för ${period}${state.settings.name ? ' – ' + state.settings.name : ''}.`,
+        });
+        return;
+      }
+    } catch (e) {
+      if (e && e.name === 'AbortError') return; // user cancelled the share sheet
+    }
+    download();
+    toast('Delning stöds inte här — filen laddades ner. Bifoga den i ett sms eller mejl.', 4000);
+  };
+
+  document.querySelectorAll('.js-share').forEach(b => b.addEventListener('click', share));
+  document.getElementById('downloadBtn').addEventListener('click', download);
 }
 
 /* ---------- Small utils ---------- */

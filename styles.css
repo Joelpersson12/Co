@@ -362,6 +362,9 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
 .decl-table tr.total td.num { font-size: 1.1rem; }
 .adv summary { cursor: pointer; font-weight: 700; padding: 6px 0; color: var(--brand); }
 
+.share-panel h2 { margin-bottom: 4px; }
+.share-panel p { margin-bottom: 14px; }
+
 .callout {
   background: var(--blue-bg); border: 1px solid #cfe0fa; border-radius: 14px;
   padding: 16px 18px; font-size: 0.94rem; color: #1b4a82; margin-bottom: 16px;

@@ -10,6 +10,7 @@ Designen är inspirerad av moderna Framer-mallar (vibrant + oma-voxia) — ljus,
 - **Kvitton** — lägg in inköp och försäljning. **Momsen räknas ut automatiskt** (25/12/6/0 %), inkl. eller exkl. moms. Bifoga bild på kvittot och egen fri text.
 - **Momskalkylator** — skriv t.ex. "Såld vara 2000 kr exkl. moms" så räknas exkl/moms/inkl ut direkt. Spara uträkningen, och bokför den som kvitto med ett klick om du vill att den ska räknas in i momsen.
 - **Importera från Stripe** — ladda upp en payout-/balansrapport (CSV) i SEK så skapas försäljningarna (och Stripe-avgifterna) automatiskt, med förhandsgranskning och dubblettskydd.
+- **Skicka till revisor** — samlar hela kvartalet (alla kvitton + momssummorna) i en fil som kan delas via sms/mejl (Web Share) eller laddas ner.
 - **Påminnelser** — banner när deadline närmar sig, kalenderexport (.ics) med larm, och valfria webbläsarnotiser.
 - **PWA** — installeras på hemskärmen och fungerar offline (kräver att alla filer i `huggingface/` serveras tillsammans).
 - **Momsdeklaration** — summorna förs automatiskt till rätt rutor (05, 10, 11, 12, 48, 49) så du bara skriver av dem hos Skatteverket. Exportera underlag som CSV.

@@ -97,6 +97,7 @@
           </div>
 
           <div class="deadline-actions">
+            <button class="btn-ghost js-share"><svg class="ic"><use href="#i-doc"/></svg> Skicka till revisor</button>
             <button class="btn-ghost" id="icsBtn"><svg class="ic"><use href="#i-cal"/></svg> Lägg till i kalender</button>
             <button class="btn-ghost" id="notifyBtn"><svg class="ic"><use href="#i-bell"/></svg> Aktivera påminnelser</button>
           </div>
@@ -269,9 +270,16 @@
           </div>
 
           <div class="panel form-card">
-            <div class="field">
-              <label for="cWhat">Vad gäller det?</label>
-              <input type="text" id="cWhat" placeholder="t.ex. Såld vara" autocomplete="off" />
+            <div class="grid-2">
+              <div class="field">
+                <label for="cWhat">Vad gäller det?</label>
+                <input type="text" id="cWhat" placeholder="t.ex. Såld vara" autocomplete="off" />
+              </div>
+              <div class="field">
+                <label for="cDate">Datum</label>
+                <input type="date" id="cDate" />
+                <p class="field-help">Datumet du betalade eller fick betalt.</p>
+              </div>
             </div>
 
             <div class="seg" role="radiogroup" aria-label="Typ av händelse">
@@ -360,7 +368,14 @@
             och skriv in beloppen ovan i rutorna med samma nummer. Stäm av mot dina kvitton först.
           </div>
 
-          <button class="btn-ghost" id="exportBtn"><svg class="ic"><use href="#i-doc"/></svg> Exportera underlag (.csv)</button>
+          <div class="panel share-panel">
+            <h2>Skicka till din revisor</h2>
+            <p class="muted small">Hela kvartalet samlas i <strong>en fil</strong> — alla kvitton plus momssummorna ovan. Du kan sms:a eller mejla den direkt.</p>
+            <div class="form-actions">
+              <button class="btn-primary js-share"><svg class="ic"><use href="#i-doc"/></svg> Skicka hela kvartalet</button>
+              <button class="btn-ghost" id="downloadBtn">Ladda ner som fil</button>
+            </div>
+          </div>
         </section>
 
         <!-- ===================== ANTECKNINGAR ===================== -->
