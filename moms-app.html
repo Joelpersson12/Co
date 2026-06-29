@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#6d5cff" />
+  <meta name="description" content="Moms — ett enkelt och tydligt personligt verktyg för att hålla koll på din momsredovisning, dina kvitton och dina deadlines." />
+  <title>Moms · Enkel momskoll</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+/* ===================== Tokens ===================== */
+:root {
+  --bg: #f4f5fb;
+  --surface: #ffffff;
+  --surface-2: #f7f8fd;
+  --line: #e7e8f2;
+  --line-strong: #d8dae9;
+  --text: #161623;
+  --text-dim: #5d5e73;
+  --text-faint: #8a8ba0;
+
+  --brand: #6d5cff;
+  --brand-2: #b15bff;
+  --brand-3: #ff5ca8;
+  --grad: linear-gradient(120deg, #6d5cff 0%, #b15bff 50%, #ff5ca8 100%);
+
+  --green: #16a36b;
+  --green-bg: #e6f7ef;
+  --amber: #c47a00;
+  --amber-bg: #fdf3e0;
+  --red: #d83a52;
+  --red-bg: #fdeaee;
+  --blue: #2c7be5;
+  --blue-bg: #eaf2fd;
+
+  --radius: 16px;
+  --radius-lg: 22px;
+  --shadow: 0 1px 2px rgba(20, 20, 40, 0.04), 0 8px 24px rgba(20, 20, 50, 0.06);
+  --shadow-lg: 0 20px 50px rgba(80, 60, 200, 0.16);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+h1 { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; }
+h2 { font-size: 1.12rem; font-weight: 700; letter-spacing: -0.01em; }
+h3 { font-size: 1.05rem; font-weight: 700; }
+.muted { color: var(--text-dim); }
+.small { font-size: 0.85rem; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.nowrap { white-space: nowrap; }
+
+:focus-visible { outline: 3px solid rgba(109, 92, 255, 0.5); outline-offset: 2px; border-radius: 8px; }
+
+.ic { width: 22px; height: 22px; flex: none; display: inline-block; }
+
+/* ===================== Layout ===================== */
+.app { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: 248px; flex: none;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  padding: 22px 16px;
+  display: flex; flex-direction: column; gap: 8px;
+  position: sticky; top: 0; height: 100vh;
+}
+.brand { display: flex; align-items: center; gap: 11px; padding: 6px 10px 18px; }
+.brand-mark { width: 30px; height: 30px; border-radius: 9px; background: var(--grad); box-shadow: 0 4px 14px rgba(109, 92, 255, 0.45); }
+.brand-name { font-weight: 800; font-size: 1.3rem; letter-spacing: -0.02em; }
+
+.side-nav { display: flex; flex-direction: column; gap: 4px; }
+.nav-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 14px; border-radius: 12px;
+  color: var(--text-dim); text-decoration: none; font-weight: 600; font-size: 0.96rem;
+  transition: background 0.2s var(--ease), color 0.2s var(--ease);
+}
+.nav-item:hover { background: var(--surface-2); color: var(--text); }
+.nav-item.active { background: linear-gradient(120deg, rgba(109,92,255,0.12), rgba(255,92,168,0.10)); color: var(--brand); }
+.nav-item.active .ic { color: var(--brand); }
+
+.side-foot { margin-top: auto; padding: 14px; background: var(--surface-2); border-radius: 12px; }
+.side-foot p { font-size: 0.82rem; color: var(--text-faint); line-height: 1.5; }
+
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 28px;
+  background: rgba(244, 245, 251, 0.85); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+.period-pill {
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 9px 15px; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--line-strong);
+  font-weight: 600; font-size: 0.92rem; color: var(--text); cursor: pointer;
+  transition: border-color 0.2s var(--ease), transform 0.2s var(--ease);
+}
+.period-pill:hover { border-color: var(--brand); transform: translateY(-1px); }
+.period-pill .ic { width: 18px; height: 18px; color: var(--brand); }
+.period-pill .caret { color: var(--text-faint); font-size: 0.7rem; }
+.biz-name { font-weight: 600; color: var(--text-dim); font-size: 0.95rem; }
+
+.content { padding: 28px; max-width: 980px; width: 100%; margin: 0 auto; padding-bottom: 60px; }
+
+.view-head { margin-bottom: 22px; }
+.view-head h1 { margin-bottom: 4px; }
+
+/* ===================== Buttons ===================== */
+.btn-primary, .btn-ghost, .btn-danger {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font-family: inherit; font-weight: 700; font-size: 0.95rem;
+  padding: 12px 20px; border-radius: 12px; border: 1px solid transparent; cursor: pointer;
+  transition: transform 0.18s var(--ease), box-shadow 0.18s var(--ease), background 0.18s var(--ease);
+}
+.btn-primary { background: var(--grad); color: #fff; box-shadow: 0 6px 18px rgba(109, 92, 255, 0.35); }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(109, 92, 255, 0.45); }
+.btn-primary .ic { width: 19px; height: 19px; }
+.btn-ghost { background: var(--surface); border-color: var(--line-strong); color: var(--text); }
+.btn-ghost:hover { border-color: var(--brand); transform: translateY(-1px); }
+.btn-ghost .ic { width: 19px; height: 19px; }
+.btn-danger { background: var(--red-bg); color: var(--red); border-color: transparent; }
+.btn-danger:hover { background: #fbdde3; }
+.btn-danger .ic { width: 19px; height: 19px; }
+.btn-block { width: 100%; }
+
+/* ===================== Hero deadline card ===================== */
+.hero-card {
+  position: relative; overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--grad);
+  color: #fff;
+  padding: 28px;
+  display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap;
+  box-shadow: var(--shadow-lg);
+  margin-bottom: 18px;
+}
+.hero-grad {
+  position: absolute; inset: 0;
+  background: radial-gradient(600px 300px at 90% -20%, rgba(255,255,255,0.35), transparent 60%);
+  pointer-events: none;
+}
+.hero-inner { position: relative; z-index: 1; }
+.hero-eyebrow { font-size: 0.82rem; font-weight: 600; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.1em; }
+.hero-date { font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; margin: 4px 0; }
+.hero-count { font-size: 1.05rem; font-weight: 600; }
+.hero-note { font-size: 0.8rem; opacity: 0.85; margin-top: 8px; }
+.hero-amount { position: relative; z-index: 1; text-align: right; min-width: 180px; }
+.hero-amount .muted { color: rgba(255,255,255,0.82); }
+.hero-amount-val { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.02em; margin: 4px 0 8px; }
+.badge-pay {
+  display: inline-block; padding: 5px 13px; border-radius: 999px;
+  background: rgba(255,255,255,0.22); font-size: 0.82rem; font-weight: 700;
+}
+
+/* ===================== Tiles ===================== */
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }
+.tile {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 18px 20px; box-shadow: var(--shadow);
+}
+.tile-label { display: flex; align-items: center; gap: 6px; color: var(--text-dim); font-size: 0.88rem; font-weight: 600; }
+.tile-val { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; margin-top: 6px; }
+
+.hint {
+  width: 18px; height: 18px; border-radius: 50%; border: 0;
+  background: var(--surface-2); color: var(--text-faint);
+  font-size: 0.72rem; font-weight: 700; cursor: help; line-height: 1;
+  border: 1px solid var(--line-strong);
+}
+.hint:hover { background: var(--brand); color: #fff; border-color: var(--brand); }
+
+/* ===================== Panels ===================== */
+.panel {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg);
+  padding: 22px; box-shadow: var(--shadow); margin-bottom: 18px;
+}
+.panel-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; gap: 12px; }
+
+/* ===================== Checklist ===================== */
+.checklist { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.check-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 8px; border-radius: 10px; cursor: pointer; transition: background 0.18s var(--ease); }
+.check-item:hover { background: var(--surface-2); }
+.check-box {
+  width: 24px; height: 24px; flex: none; border-radius: 8px;
+  border: 2px solid var(--line-strong); display: flex; align-items: center; justify-content: center;
+  color: #fff; transition: all 0.18s var(--ease);
+}
+.check-box .ic { width: 16px; height: 16px; opacity: 0; }
+.check-item.done .check-box { background: var(--green); border-color: var(--green); }
+.check-item.done .check-box .ic { opacity: 1; }
+.check-item.done .check-text { color: var(--text-faint); text-decoration: line-through; }
+.check-text { font-weight: 500; padding-top: 1px; }
+
+.fab-inline { width: 100%; padding: 15px; font-size: 1rem; }
+
+/* ===================== Forms ===================== */
+.form-card .form-title { margin-bottom: 16px; }
+.seg { display: flex; gap: 8px; background: var(--surface-2); padding: 5px; border-radius: 12px; margin-bottom: 16px; }
+.seg-opt { flex: 1; }
+.seg-opt input { position: absolute; opacity: 0; pointer-events: none; }
+.seg-opt span {
+  display: block; text-align: center; padding: 10px; border-radius: 9px;
+  font-weight: 600; color: var(--text-dim); cursor: pointer; font-size: 0.92rem;
+  transition: all 0.18s var(--ease);
+}
+.seg-opt input:checked + span { background: var(--surface); color: var(--brand); box-shadow: var(--shadow); }
+.seg-opt input:focus-visible + span { outline: 3px solid rgba(109,92,255,0.5); }
+
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.field label { font-weight: 600; font-size: 0.9rem; color: var(--text); }
+.field-help { font-size: 0.82rem; color: var(--text-faint); }
+input[type="text"], input[type="number"], input[type="date"], select, textarea {
+  font-family: inherit; font-size: 1rem; color: var(--text);
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: 11px;
+  padding: 12px 14px; width: 100%; transition: border-color 0.18s var(--ease), box-shadow 0.18s var(--ease);
+}
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 4px rgba(109, 92, 255, 0.14); }
+input::placeholder { color: var(--text-faint); }
+input[type="file"] { padding: 9px; font-size: 0.88rem; }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+
+.input-money { position: relative; display: flex; align-items: center; }
+.input-money input { padding-right: 38px; }
+.input-money span { position: absolute; right: 14px; color: var(--text-faint); font-weight: 600; pointer-events: none; }
+
+.calc-preview {
+  display: flex; gap: 22px; flex-wrap: wrap;
+  background: linear-gradient(120deg, rgba(109,92,255,0.08), rgba(255,92,168,0.06));
+  border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; margin-bottom: 16px;
+  font-size: 0.95rem; color: var(--text-dim);
+}
+.calc-preview strong { color: var(--text); font-size: 1.05rem; }
+
+.form-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+
+/* ===================== Receipt list ===================== */
+.receipt-list { display: flex; flex-direction: column; gap: 10px; }
+.receipt-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-2);
+}
+.receipt-thumb {
+  width: 46px; height: 46px; border-radius: 10px; flex: none; object-fit: cover;
+  background: var(--surface); display: flex; align-items: center; justify-content: center;
+  color: var(--text-faint); border: 1px solid var(--line);
+}
+.receipt-main { flex: 1; min-width: 0; }
+.receipt-title { font-weight: 700; font-size: 0.98rem; }
+.receipt-meta { font-size: 0.83rem; color: var(--text-faint); display: flex; gap: 8px; flex-wrap: wrap; }
+.receipt-tag { font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; }
+.tag-in { background: var(--green-bg); color: var(--green); }
+.tag-out { background: var(--blue-bg); color: var(--blue); }
+.receipt-amt { text-align: right; flex: none; }
+.receipt-amt .a { font-weight: 800; font-variant-numeric: tabular-nums; }
+.receipt-amt .v { font-size: 0.78rem; color: var(--text-faint); }
+.receipt-del { background: none; border: 0; color: var(--text-faint); cursor: pointer; padding: 6px; border-radius: 8px; }
+.receipt-del:hover { color: var(--red); background: var(--red-bg); }
+.receipt-del .ic { width: 18px; height: 18px; }
+
+.empty { text-align: center; padding: 36px 20px; color: var(--text-faint); }
+
+/* ===================== Calculator ===================== */
+.result-card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg);
+  padding: 8px 22px; box-shadow: var(--shadow); margin-bottom: 14px;
+}
+.result-row { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.result-row:last-child { border-bottom: 0; }
+.result-row span { color: var(--text-dim); font-weight: 600; }
+.result-row em { color: var(--text-faint); font-style: normal; font-weight: 500; }
+.result-row strong { font-size: 1.35rem; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.result-row.total { padding: 20px 0; }
+.result-row.total span { color: var(--text); font-size: 1.05rem; }
+.result-row.total strong {
+  font-size: 1.9rem;
+  background: var(--grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+#calcSave { margin-bottom: 18px; padding: 15px; font-size: 1rem; }
+
+.calc-list { display: flex; flex-direction: column; gap: 10px; }
+.calc-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-2);
+}
+.calc-row-main { flex: 1; min-width: 0; }
+.calc-row-title { font-weight: 700; font-size: 0.98rem; }
+.calc-row-meta { font-size: 0.83rem; color: var(--text-faint); }
+.calc-row-amt { text-align: right; flex: none; }
+.calc-row-amt .a { font-weight: 800; font-variant-numeric: tabular-nums; }
+.calc-row-amt .v { font-size: 0.78rem; color: var(--text-faint); }
+.calc-book {
+  background: none; border: 1px solid var(--line-strong); color: var(--brand);
+  font-family: inherit; font-weight: 700; font-size: 0.8rem; cursor: pointer;
+  padding: 7px 11px; border-radius: 9px; white-space: nowrap;
+}
+.calc-book:hover { border-color: var(--brand); background: rgba(109,92,255,0.08); }
+.calc-book:disabled { color: var(--green); border-color: var(--green-bg); background: var(--green-bg); cursor: default; }
+
+/* ===================== Declaration table ===================== */
+.decl-table { width: 100%; border-collapse: collapse; }
+.decl-table th { text-align: left; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.decl-table th.num { text-align: right; }
+.decl-table td { padding: 13px 12px; border-bottom: 1px solid var(--line); font-size: 0.95rem; }
+.decl-table tr:last-child td { border-bottom: 0; }
+.decl-ruta { font-weight: 800; color: var(--brand); width: 64px; }
+.decl-table td.num { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.decl-table tr.total td { background: var(--surface-2); font-weight: 800; }
+.decl-table tr.total td.num { font-size: 1.1rem; }
+.adv summary { cursor: pointer; font-weight: 700; padding: 6px 0; color: var(--brand); }
+
+.callout {
+  background: var(--blue-bg); border: 1px solid #cfe0fa; border-radius: 14px;
+  padding: 16px 18px; font-size: 0.94rem; color: #1b4a82; margin-bottom: 16px;
+}
+.callout strong { color: #14365f; }
+
+/* ===================== Notes ===================== */
+.notes-area { min-height: 320px; resize: vertical; line-height: 1.6; }
+#notesSaved { margin-top: 8px; opacity: 0; transition: opacity 0.3s; }
+#notesSaved.show { opacity: 1; }
+
+/* ===================== Settings danger zone ===================== */
+.danger-zone h2 { margin-bottom: 4px; }
+.file-btn { cursor: pointer; }
+.disclaimer {
+  background: var(--amber-bg); border: 1px solid #f0dcb4; border-radius: 14px;
+  padding: 16px 18px; font-size: 0.88rem; color: #6b4e16; line-height: 1.6;
+}
+.disclaimer strong { color: #5a3f0f; }
+
+/* ===================== Bottom nav (mobile) ===================== */
+.bottom-nav { display: none; }
+
+/* ===================== Period sheet ===================== */
+.sheet { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; justify-content: center; }
+.sheet[hidden] { display: none; }
+.sheet-backdrop { position: absolute; inset: 0; background: rgba(20, 20, 40, 0.4); animation: fade 0.2s; }
+.sheet-body {
+  position: relative; background: var(--surface); width: 100%; max-width: 460px;
+  border-radius: 22px 22px 0 0; padding: 24px; box-shadow: 0 -10px 40px rgba(0,0,0,0.2);
+  animation: slideup 0.28s var(--ease);
+}
+@media (min-width: 600px) { .sheet { align-items: center; } .sheet-body { border-radius: 22px; } }
+.sheet-body h3 { margin-bottom: 14px; }
+.period-options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.period-opt {
+  text-align: left; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--line-strong);
+  background: var(--surface); font-family: inherit; font-size: 0.95rem; font-weight: 600; cursor: pointer;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.period-opt:hover { border-color: var(--brand); }
+.period-opt.active { background: linear-gradient(120deg, rgba(109,92,255,0.12), rgba(255,92,168,0.10)); border-color: var(--brand); color: var(--brand); }
+@keyframes slideup { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* ===================== Toast ===================== */
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--text); color: #fff; padding: 13px 22px; border-radius: 999px;
+  font-weight: 600; font-size: 0.92rem; box-shadow: var(--shadow-lg); z-index: 80;
+  opacity: 0; transition: all 0.3s var(--ease); pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ===================== Responsive ===================== */
+@media (max-width: 860px) {
+  .sidebar { display: none; }
+  .topbar { padding: 12px 16px; }
+  .content { padding: 18px 16px 90px; }
+  .bottom-nav {
+    display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+    background: rgba(255,255,255,0.94); backdrop-filter: blur(14px);
+    border-top: 1px solid var(--line);
+    padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
+    justify-content: space-around;
+  }
+  .bn-item {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: var(--text-faint); text-decoration: none; font-size: 0.62rem; font-weight: 600;
+    padding: 4px 3px; border-radius: 10px; flex: 1; min-width: 0;
+  }
+  .bn-item span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bn-item .ic { width: 22px; height: 22px; }
+  .bn-item.active { color: var(--brand); }
+  .hero-card { flex-direction: column; }
+  .hero-amount { text-align: left; }
+  .tiles { grid-template-columns: 1fr; }
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  h1 { font-size: 1.4rem; }
+}
+
+@media (max-width: 420px) {
+  .calc-preview { gap: 14px; }
+  .hero-date { font-size: 1.7rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+</style>
+</head>
+<body>
+  <!-- SVG icon sprite -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-note" viewBox="0 0 24 24"><path d="M5 4h14v16H5zM9 9h6M9 13h6M9 17h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-calc" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="8" y="6" width="8" height="3" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M9 13h0M12.5 13h0M16 13h0M9 16h0M12.5 16h0M16 16h0" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+  </svg>
+
+  <div class="app">
+    <!-- Sidebar (desktop) -->
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark"></span>
+        <span class="brand-name">Moms</span>
+      </div>
+      <nav class="side-nav" aria-label="Huvudmeny">
+        <a href="#oversikt" class="nav-item" data-view="oversikt"><svg class="ic"><use href="#i-home"/></svg><span>Översikt</span></a>
+        <a href="#kvitton" class="nav-item" data-view="kvitton"><svg class="ic"><use href="#i-receipt"/></svg><span>Kvitton</span></a>
+        <a href="#kalkylator" class="nav-item" data-view="kalkylator"><svg class="ic"><use href="#i-calc"/></svg><span>Momskalkylator</span></a>
+        <a href="#deklaration" class="nav-item" data-view="deklaration"><svg class="ic"><use href="#i-doc"/></svg><span>Momsdeklaration</span></a>
+        <a href="#anteckningar" class="nav-item" data-view="anteckningar"><svg class="ic"><use href="#i-note"/></svg><span>Anteckningar</span></a>
+        <a href="#installningar" class="nav-item" data-view="installningar"><svg class="ic"><use href="#i-gear"/></svg><span>Inställningar</span></a>
+      </nav>
+      <div class="side-foot">
+        <p>Allt sparas <strong>lokalt på din enhet</strong>. Inget skickas någonstans.</p>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="period-pill" id="periodPill" aria-haspopup="true">
+            <svg class="ic"><use href="#i-clock"/></svg>
+            <span id="periodLabel">Period</span>
+            <span class="caret">▾</span>
+          </button>
+        </div>
+        <div class="topbar-right">
+          <span class="biz-name" id="bizNameTop">Mitt företag</span>
+        </div>
+      </header>
+
+      <main class="content">
+        <!-- ===================== ÖVERSIKT ===================== -->
+        <section class="view" id="view-oversikt">
+          <div class="view-head">
+            <h1>Översikt</h1>
+            <p class="muted" id="periodSub">Din momsredovisning för perioden.</p>
+          </div>
+
+          <!-- Deadline hero -->
+          <div class="hero-card">
+            <div class="hero-grad" aria-hidden="true"></div>
+            <div class="hero-inner">
+              <span class="hero-eyebrow">Nästa deadline</span>
+              <div class="hero-date" id="deadlineDate">—</div>
+              <div class="hero-count" id="deadlineCountdown">Lägg in din period i Inställningar</div>
+              <p class="hero-note">Kontrollera alltid exakt datum hos Skatteverket.</p>
+            </div>
+            <div class="hero-amount">
+              <span class="muted small">Moms att betala / få tillbaka</span>
+              <div class="hero-amount-val" id="heroAmount">0 kr</div>
+              <span class="badge-pay" id="heroAmountBadge">—</span>
+            </div>
+          </div>
+
+          <!-- Summary tiles -->
+          <div class="tiles">
+            <div class="tile">
+              <span class="tile-label">Utgående moms <button class="hint" data-hint="Moms du tagit ut på det du sålt (din försäljning).">?</button></span>
+              <div class="tile-val" id="sumUtg">0 kr</div>
+            </div>
+            <div class="tile">
+              <span class="tile-label">Ingående moms <button class="hint" data-hint="Moms du betalat på det du köpt och får dra av.">?</button></span>
+              <div class="tile-val" id="sumIng">0 kr</div>
+            </div>
+            <div class="tile">
+              <span class="tile-label">Kvitton i perioden</span>
+              <div class="tile-val" id="sumCount">0</div>
+            </div>
+          </div>
+
+          <!-- Checklist -->
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Att göra innan deadline</h2>
+              <span class="muted small" id="checkProgress">0 / 5 klart</span>
+            </div>
+            <ul class="checklist" id="checklist"></ul>
+          </div>
+
+          <button class="fab-inline btn-primary" data-goto="kvitton">
+            <svg class="ic"><use href="#i-plus"/></svg> Lägg till kvitto
+          </button>
+        </section>
+
+        <!-- ===================== KVITTON ===================== -->
+        <section class="view" id="view-kvitton" hidden>
+          <div class="view-head">
+            <h1>Kvitton</h1>
+            <p class="muted">Lägg in allt du köpt och sålt. Momsen räknas ut åt dig.</p>
+          </div>
+
+          <form class="panel form-card" id="receiptForm">
+            <h2 class="form-title">Nytt kvitto</h2>
+
+            <div class="seg" role="radiogroup" aria-label="Typ av händelse">
+              <label class="seg-opt">
+                <input type="radio" name="type" value="inkop" checked />
+                <span>Utgift / Inköp</span>
+              </label>
+              <label class="seg-opt">
+                <input type="radio" name="type" value="forsaljning" />
+                <span>Inkomst / Försäljning</span>
+              </label>
+            </div>
+
+            <div class="grid-2">
+              <div class="field">
+                <label for="rfDate">Datum</label>
+                <input type="date" id="rfDate" name="date" required />
+              </div>
+              <div class="field">
+                <label for="rfParty">Motpart <span class="muted small">(vem)</span></label>
+                <input type="text" id="rfParty" name="party" placeholder="t.ex. Bauhaus" required autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="rfDesc">Vad avser det?</label>
+              <input type="text" id="rfDesc" name="desc" placeholder="t.ex. Material till jobb" required autocomplete="off" />
+            </div>
+
+            <div class="grid-3">
+              <div class="field">
+                <label for="rfAmount">Belopp</label>
+                <div class="input-money">
+                  <input type="number" id="rfAmount" name="amount" inputmode="decimal" step="0.01" min="0" placeholder="0,00" required />
+                  <span>kr</span>
+                </div>
+              </div>
+              <div class="field">
+                <label for="rfInclusive">Beloppet är</label>
+                <select id="rfInclusive" name="inclusive">
+                  <option value="inkl" selected>Inkl. moms</option>
+                  <option value="exkl">Exkl. moms</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="rfRate">Momssats</label>
+                <select id="rfRate" name="rate">
+                  <option value="25" selected>25 %</option>
+                  <option value="12">12 %</option>
+                  <option value="6">6 %</option>
+                  <option value="0">0 % / momsfritt</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="calc-preview" id="calcPreview" aria-live="polite">
+              <span>Moms: <strong id="calcVat">0 kr</strong></span>
+              <span>Exkl. moms: <strong id="calcExcl">0 kr</strong></span>
+              <span>Totalt: <strong id="calcTotal">0 kr</strong></span>
+            </div>
+
+            <div class="grid-2">
+              <div class="field">
+                <label for="rfFile">Bild på kvitto <span class="muted small">(valfritt)</span></label>
+                <input type="file" id="rfFile" name="file" accept="image/*" capture="environment" />
+              </div>
+              <div class="field">
+                <label for="rfNote">Fri text <span class="muted small">(valfritt)</span></label>
+                <input type="text" id="rfNote" name="note" placeholder="Egen anteckning" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn-primary"><svg class="ic"><use href="#i-check"/></svg> Spara kvitto</button>
+              <button type="reset" class="btn-ghost">Rensa</button>
+            </div>
+          </form>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Sparade kvitton</h2>
+              <span class="muted small" id="receiptCount">0 st</span>
+            </div>
+            <div id="receiptList" class="receipt-list"></div>
+          </div>
+        </section>
+
+        <!-- ===================== KALKYLATOR ===================== -->
+        <section class="view" id="view-kalkylator" hidden>
+          <div class="view-head">
+            <h1>Momskalkylator</h1>
+            <p class="muted">Skriv ett belopp så räknar jag ut momsen direkt. Spara det du vill minnas.</p>
+          </div>
+
+          <div class="panel form-card">
+            <div class="field">
+              <label for="cWhat">Vad gäller det?</label>
+              <input type="text" id="cWhat" placeholder="t.ex. Såld vara" autocomplete="off" />
+            </div>
+
+            <div class="seg" role="radiogroup" aria-label="Typ av händelse">
+              <label class="seg-opt">
+                <input type="radio" name="ctype" value="forsaljning" checked />
+                <span>Försäljning</span>
+              </label>
+              <label class="seg-opt">
+                <input type="radio" name="ctype" value="inkop" />
+                <span>Inköp</span>
+              </label>
+            </div>
+
+            <div class="grid-3">
+              <div class="field">
+                <label for="cAmount">Belopp</label>
+                <div class="input-money">
+                  <input type="number" id="cAmount" inputmode="decimal" step="0.01" min="0" placeholder="0,00" />
+                  <span>kr</span>
+                </div>
+              </div>
+              <div class="field">
+                <label for="cIncl">Beloppet är</label>
+                <select id="cIncl">
+                  <option value="exkl" selected>Exkl. moms</option>
+                  <option value="inkl">Inkl. moms</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="cRate">Momssats</label>
+                <select id="cRate">
+                  <option value="25" selected>25 %</option>
+                  <option value="12">12 %</option>
+                  <option value="6">6 %</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="result-card" id="calcResult" aria-live="polite">
+            <div class="result-row"><span>Exkl. moms</span><strong id="cExcl">0 kr</strong></div>
+            <div class="result-row"><span>Moms <em id="cRateLbl">(25 %)</em></span><strong id="cVat">0 kr</strong></div>
+            <div class="result-row total"><span>Totalt inkl. moms</span><strong id="cTotal">0 kr</strong></div>
+          </div>
+
+          <button class="btn-primary btn-block" id="calcSave"><svg class="ic"><use href="#i-check"/></svg> Spara uträkning</button>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Sparade uträkningar</h2>
+              <span class="muted small" id="calcCount">0 st</span>
+            </div>
+            <div id="calcList" class="calc-list"></div>
+          </div>
+        </section>
+
+        <!-- ===================== DEKLARATION ===================== -->
+        <section class="view" id="view-deklaration" hidden>
+          <div class="view-head">
+            <h1>Momsdeklaration</h1>
+            <p class="muted">Summorna att föra in i Skatteverkets momsdeklaration för perioden.</p>
+          </div>
+
+          <div class="panel">
+            <table class="decl-table">
+              <thead><tr><th>Ruta</th><th>Avser</th><th class="num">Belopp</th></tr></thead>
+              <tbody id="declRows"></tbody>
+            </table>
+          </div>
+
+          <details class="panel adv">
+            <summary>Visa fler rutor (EU-handel m.m.)</summary>
+            <table class="decl-table">
+              <tbody id="declAdvRows"></tbody>
+            </table>
+            <p class="muted small">Dessa fylls bara i om du handlar med utlandet. Lämna tomma annars.</p>
+          </details>
+
+          <div class="callout">
+            <strong>Så gör du:</strong> Logga in på <span class="nowrap">skatteverket.se</span> → Moms → Momsdeklaration,
+            och skriv in beloppen ovan i rutorna med samma nummer. Stäm av mot dina kvitton först.
+          </div>
+
+          <button class="btn-ghost" id="exportBtn"><svg class="ic"><use href="#i-doc"/></svg> Exportera underlag (.csv)</button>
+        </section>
+
+        <!-- ===================== ANTECKNINGAR ===================== -->
+        <section class="view" id="view-anteckningar" hidden>
+          <div class="view-head">
+            <h1>Anteckningar</h1>
+            <p class="muted">Fri text — påminnelser, frågor till revisorn, vad som helst. Sparas automatiskt.</p>
+          </div>
+          <div class="panel">
+            <textarea id="notes" class="notes-area" placeholder="Skriv här…"></textarea>
+            <p class="muted small" id="notesSaved">Sparat</p>
+          </div>
+        </section>
+
+        <!-- ===================== INSTÄLLNINGAR ===================== -->
+        <section class="view" id="view-installningar" hidden>
+          <div class="view-head">
+            <h1>Inställningar</h1>
+            <p class="muted">Fyll i en gång så anpassas allt efter dig.</p>
+          </div>
+
+          <form class="panel form-card" id="settingsForm">
+            <div class="grid-2">
+              <div class="field">
+                <label for="setName">Företagsnamn / ditt namn</label>
+                <input type="text" id="setName" placeholder="t.ex. Anna Andersson" autocomplete="organization" />
+              </div>
+              <div class="field">
+                <label for="setOrg">Organisationsnummer / personnummer</label>
+                <input type="text" id="setOrg" placeholder="556xxx-xxxx" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="setPeriod">Hur ofta redovisar du moms?</label>
+              <select id="setPeriod">
+                <option value="kvartal">Varje kvartal (vanligast för småföretag)</option>
+                <option value="manad">Varje månad</option>
+                <option value="helar">En gång per år (helår)</option>
+              </select>
+              <p class="field-help">Vet du inte? Står på ditt registreringsbevis från Skatteverket. Kvartal är vanligast.</p>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn-primary"><svg class="ic"><use href="#i-check"/></svg> Spara</button>
+            </div>
+          </form>
+
+          <div class="panel danger-zone">
+            <h2>Hantera data</h2>
+            <p class="muted small">All din data ligger lokalt i den här webbläsaren. Ta en säkerhetskopia ibland.</p>
+            <div class="form-actions">
+              <button class="btn-ghost" id="backupBtn">Ladda ner säkerhetskopia</button>
+              <label class="btn-ghost file-btn">Återställ från fil<input type="file" id="restoreInput" accept="application/json" hidden /></label>
+              <button class="btn-danger" id="wipeBtn"><svg class="ic"><use href="#i-trash"/></svg> Radera allt</button>
+            </div>
+          </div>
+
+          <div class="disclaimer">
+            <strong>Viktigt:</strong> Det här är ett personligt hjälpmedel för eget bruk, inte officiell bokföring och
+            inte kopplat till Skatteverket. Det ersätter inte bokföringsprogram eller rådgivning från revisor.
+            Du ansvarar själv för att uppgifterna du lämnar till Skatteverket är korrekta och i tid.
+          </div>
+        </section>
+      </main>
+
+      <!-- Bottom nav (mobile) -->
+      <nav class="bottom-nav" aria-label="Huvudmeny mobil">
+        <a href="#oversikt" class="bn-item" data-view="oversikt"><svg class="ic"><use href="#i-home"/></svg><span>Översikt</span></a>
+        <a href="#kvitton" class="bn-item" data-view="kvitton"><svg class="ic"><use href="#i-receipt"/></svg><span>Kvitton</span></a>
+        <a href="#kalkylator" class="bn-item" data-view="kalkylator"><svg class="ic"><use href="#i-calc"/></svg><span>Kalkyl</span></a>
+        <a href="#deklaration" class="bn-item" data-view="deklaration"><svg class="ic"><use href="#i-doc"/></svg><span>Moms</span></a>
+        <a href="#anteckningar" class="bn-item" data-view="anteckningar"><svg class="ic"><use href="#i-note"/></svg><span>Anteckn.</span></a>
+        <a href="#installningar" class="bn-item" data-view="installningar"><svg class="ic"><use href="#i-gear"/></svg><span>Mer</span></a>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Period picker sheet -->
+  <div class="sheet" id="periodSheet" hidden>
+    <div class="sheet-backdrop" data-close-sheet></div>
+    <div class="sheet-body" role="dialog" aria-label="Välj period">
+      <h3>Välj period</h3>
+      <div id="periodOptions" class="period-options"></div>
+      <button class="btn-ghost btn-block" data-close-sheet>Stäng</button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast" hidden></div>
+
+  <script>
+/* =========================================================
+   Moms — enkel momskoll. All data lokalt i webbläsaren.
+   ========================================================= */
+'use strict';
+
+const STORE_KEY = 'moms.data.v1';
+const MONTHS = ['januari','februari','mars','april','maj','juni','juli','augusti','september','oktober','november','december'];
+const VAT_RATES = [25, 12, 6, 0];
+
+/* ---------- State ---------- */
+let state = load();
+
+function defaultState() {
+  return {
+    settings: { name: '', org: '', period: 'kvartal' },
+    receipts: [],          // {id, verNr, date, type, party, desc, exkl, vat, total, rate, fileData, note, createdAt}
+    calculations: [],      // {id, ts, label, type, amount, inclusive, rate, exkl, vat, total, bookedId}
+    notes: '',
+    checks: {},            // { 'periodKey': [bool x5] }
+    activePeriod: null,    // periodKey string, null = current
+  };
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return defaultState();
+    return Object.assign(defaultState(), JSON.parse(raw));
+  } catch { return defaultState(); }
+}
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+  catch (e) { toast('Kunde inte spara — lagringen kan vara full.'); }
+}
+
+/* ---------- Money & VAT helpers ---------- */
+const kr = (n) => (Math.round(n) || 0).toLocaleString('sv-SE') + ' kr';
+const krSigned = (n) => (n > 0 ? '+' : '') + kr(n);
+
+function computeVat(amount, rate, inclusive) {
+  const r = rate / 100;
+  if (rate === 0) return { exkl: amount, vat: 0, total: amount };
+  if (inclusive === 'inkl') {
+    const exkl = amount / (1 + r);
+    return { exkl, vat: amount - exkl, total: amount };
+  }
+  return { exkl: amount, vat: amount * r, total: amount + amount * r };
+}
+
+/* ---------- Period logic ----------
+   A periodKey identifies a reporting period.
+   kvartal: "2026-Q1"  manad: "2026-03"  helar: "2026"
+*/
+function currentPeriodKey(period, d = new Date()) {
+  const y = d.getFullYear();
+  if (period === 'manad') return `${y}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  if (period === 'helar') return `${y}`;
+  return `${y}-Q${Math.floor(d.getMonth() / 3) + 1}`;
+}
+
+// Returns {start: Date, end: Date} inclusive range for a periodKey
+function periodRange(period, key) {
+  if (period === 'manad') {
+    const [y, m] = key.split('-').map(Number);
+    return { start: new Date(y, m - 1, 1), end: new Date(y, m, 0) };
+  }
+  if (period === 'helar') {
+    const y = Number(key);
+    return { start: new Date(y, 0, 1), end: new Date(y, 11, 31) };
+  }
+  const [ys, q] = key.split('-Q');
+  const y = Number(ys), qi = Number(q);
+  return { start: new Date(y, (qi - 1) * 3, 1), end: new Date(y, qi * 3, 0) };
+}
+
+// Skatteverket-style deadline: 12th of 2nd month after period end (yearly: 26th).
+// Deadlines falling in Jan or Aug shift to the 17th. Always advisory.
+function deadlineFor(period, key) {
+  const { end } = periodRange(period, key);
+  let dueMonth = end.getMonth() + 2; // 2nd month after period end
+  let dueYear = end.getFullYear();
+  while (dueMonth > 11) { dueMonth -= 12; dueYear += 1; }
+  let day = period === 'helar' ? 26 : 12;
+  if (period !== 'helar' && (dueMonth === 0 || dueMonth === 7)) day = 17; // Jan/Aug
+  return new Date(dueYear, dueMonth, day);
+}
+
+function periodLabel(period, key) {
+  if (period === 'manad') {
+    const [y, m] = key.split('-').map(Number);
+    return `${MONTHS[m - 1]} ${y}`;
+  }
+  if (period === 'helar') return `Helår ${key}`;
+  const [y, q] = key.split('-Q');
+  return `Kvartal ${q} ${y}`;
+}
+
+function activeKey() {
+  return state.activePeriod || currentPeriodKey(state.settings.period);
+}
+
+// Build a list of selectable periods: a few back, current, and next.
+function periodChoices() {
+  const period = state.settings.period;
+  const keys = [];
+  const now = new Date();
+  if (period === 'manad') {
+    for (let i = -5; i <= 1; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      keys.push(currentPeriodKey('manad', d));
+    }
+  } else if (period === 'helar') {
+    for (let i = -2; i <= 1; i++) keys.push(String(now.getFullYear() + i));
+  } else {
+    for (let i = -4; i <= 1; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i * 3, 1);
+      keys.push(currentPeriodKey('kvartal', d));
+    }
+  }
+  return [...new Set(keys)];
+}
+
+/* ---------- Receipts for active period ---------- */
+function receiptsInPeriod() {
+  const { start, end } = periodRange(state.settings.period, activeKey());
+  return state.receipts.filter(r => {
+    const d = new Date(r.date + 'T00:00:00');
+    return d >= start && d <= end;
+  }).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/* ---------- VAT declaration totals ---------- */
+function declTotals() {
+  const rs = receiptsInPeriod();
+  const t = { sales: 0, u25: 0, u12: 0, u6: 0, ing: 0 };
+  for (const r of rs) {
+    if (r.type === 'forsaljning') {
+      t.sales += r.exkl;
+      if (r.rate === 25) t.u25 += r.vat;
+      else if (r.rate === 12) t.u12 += r.vat;
+      else if (r.rate === 6) t.u6 += r.vat;
+    } else {
+      t.ing += r.vat;
+    }
+  }
+  t.utg = t.u25 + t.u12 + t.u6;
+  t.toPay = t.utg - t.ing; // ruta 49
+  return t;
+}
+
+/* =========================================================
+   Rendering
+   ========================================================= */
+function renderAll() {
+  renderTopbar();
+  renderOverview();
+  renderReceiptList();
+  renderCalcList();
+  renderDeclaration();
+  renderSettingsForm();
+  document.getElementById('notes').value = state.notes || '';
+}
+
+function renderTopbar() {
+  document.getElementById('periodLabel').textContent = periodLabel(state.settings.period, activeKey());
+  document.getElementById('bizNameTop').textContent = state.settings.name || 'Mitt företag';
+  document.getElementById('periodSub').textContent =
+    `Din momsredovisning för ${periodLabel(state.settings.period, activeKey()).toLowerCase()}.`;
+}
+
+function renderOverview() {
+  const t = declTotals();
+  const dl = deadlineFor(state.settings.period, activeKey());
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const days = Math.round((dl - today) / 86400000);
+
+  document.getElementById('deadlineDate').textContent =
+    `${dl.getDate()} ${MONTHS[dl.getMonth()]} ${dl.getFullYear()}`;
+  const cd = document.getElementById('deadlineCountdown');
+  if (days > 1) cd.textContent = `Om ${days} dagar`;
+  else if (days === 1) cd.textContent = 'I morgon!';
+  else if (days === 0) cd.textContent = 'Idag!';
+  else cd.textContent = `${Math.abs(days)} dagar sedan (försenad?)`;
+
+  document.getElementById('heroAmount').textContent = kr(Math.abs(t.toPay));
+  const badge = document.getElementById('heroAmountBadge');
+  if (t.toPay > 0) badge.textContent = 'Att betala';
+  else if (t.toPay < 0) badge.textContent = 'Att få tillbaka';
+  else badge.textContent = 'Noll';
+
+  document.getElementById('sumUtg').textContent = kr(t.utg);
+  document.getElementById('sumIng').textContent = kr(t.ing);
+  document.getElementById('sumCount').textContent = receiptsInPeriod().length;
+
+  renderChecklist();
+}
+
+const CHECK_ITEMS = [
+  'Samla alla kvitton för perioden',
+  'Kontrollera att momsen stämmer på varje kvitto',
+  'Stäm av summorna under Momsdeklaration',
+  'Logga in på Skatteverket och fyll i deklarationen',
+  'Betala momsen (eller invänta återbetalning)',
+];
+function renderChecklist() {
+  const key = activeKey();
+  const checks = state.checks[key] || (state.checks[key] = [false, false, false, false, false]);
+  const ul = document.getElementById('checklist');
+  ul.innerHTML = '';
+  CHECK_ITEMS.forEach((label, i) => {
+    const li = document.createElement('li');
+    li.className = 'check-item' + (checks[i] ? ' done' : '');
+    li.tabIndex = 0;
+    li.setAttribute('role', 'checkbox');
+    li.setAttribute('aria-checked', checks[i] ? 'true' : 'false');
+    li.innerHTML = `<span class="check-box"><svg class="ic"><use href="#i-check"/></svg></span><span class="check-text">${label}</span>`;
+    const toggle = () => { checks[i] = !checks[i]; save(); renderChecklist(); };
+    li.addEventListener('click', toggle);
+    li.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); } });
+    ul.appendChild(li);
+  });
+  const done = checks.filter(Boolean).length;
+  document.getElementById('checkProgress').textContent = `${done} / 5 klart`;
+}
+
+function renderReceiptList() {
+  const rs = receiptsInPeriod().slice().reverse();
+  const list = document.getElementById('receiptList');
+  document.getElementById('receiptCount').textContent = `${rs.length} st`;
+  if (!rs.length) {
+    list.innerHTML = `<div class="empty">Inga kvitton i ${periodLabel(state.settings.period, activeKey()).toLowerCase()} än.<br>Lägg till ditt första ovan.</div>`;
+    return;
+  }
+  list.innerHTML = '';
+  for (const r of rs) {
+    const row = document.createElement('div');
+    row.className = 'receipt-row';
+    const isSale = r.type === 'forsaljning';
+    const thumb = r.fileData
+      ? `<img class="receipt-thumb" src="${r.fileData}" alt="Kvitto" />`
+      : `<span class="receipt-thumb"><svg class="ic"><use href="#i-receipt"/></svg></span>`;
+    row.innerHTML = `
+      ${thumb}
+      <div class="receipt-main">
+        <div class="receipt-title">${esc(r.party)} <span class="receipt-tag ${isSale ? 'tag-in' : 'tag-out'}">${isSale ? 'Försäljning' : 'Inköp'}</span></div>
+        <div class="receipt-meta"><span>${fmtDate(r.date)}</span><span>${esc(r.desc)}</span><span>${r.rate}% moms</span></div>
+      </div>
+      <div class="receipt-amt">
+        <div class="a">${kr(r.total)}</div>
+        <div class="v">moms ${kr(r.vat)}</div>
+      </div>
+      <button class="receipt-del" aria-label="Ta bort kvitto" data-del="${r.id}"><svg class="ic"><use href="#i-trash"/></svg></button>`;
+    row.querySelector('[data-del]').addEventListener('click', () => deleteReceipt(r.id));
+    list.appendChild(row);
+  }
+}
+
+function renderCalcList() {
+  const list = document.getElementById('calcList');
+  if (!list) return;
+  const calcs = state.calculations.slice().reverse();
+  document.getElementById('calcCount').textContent = `${calcs.length} st`;
+  if (!calcs.length) {
+    list.innerHTML = `<div class="empty">Inga sparade uträkningar än.<br>Räkna ut något ovan och tryck Spara.</div>`;
+    return;
+  }
+  list.innerHTML = '';
+  for (const c of calcs) {
+    const isSale = c.type === 'forsaljning';
+    const row = document.createElement('div');
+    row.className = 'calc-row';
+    const booked = !!c.bookedId;
+    row.innerHTML = `
+      <div class="calc-row-main">
+        <div class="calc-row-title">${esc(c.label)} <span class="receipt-tag ${isSale ? 'tag-in' : 'tag-out'}">${isSale ? 'Försäljning' : 'Inköp'}</span></div>
+        <div class="calc-row-meta">${esc(fmtDateTime(c.ts))} · ${c.rate}% moms · exkl ${kr(c.exkl)}</div>
+      </div>
+      <div class="calc-row-amt">
+        <div class="a">${kr(c.total)}</div>
+        <div class="v">moms ${kr(c.vat)}</div>
+      </div>
+      <button class="calc-book" ${booked ? 'disabled' : ''} data-book="${c.id}">${booked ? 'Bokfört ✓' : 'Gör till kvitto'}</button>
+      <button class="receipt-del" aria-label="Ta bort uträkning" data-delcalc="${c.id}"><svg class="ic"><use href="#i-trash"/></svg></button>`;
+    row.querySelector('[data-delcalc]').addEventListener('click', () => deleteCalc(c.id));
+    if (!booked) row.querySelector('[data-book]').addEventListener('click', () => bookCalc(c.id));
+    list.appendChild(row);
+  }
+}
+
+function deleteCalc(id) {
+  state.calculations = state.calculations.filter(c => c.id !== id);
+  save(); renderCalcList(); toast('Uträkning borttagen');
+}
+
+// Turn a saved calculation into a real receipt so it counts in the declaration.
+function bookCalc(id) {
+  const c = state.calculations.find(x => x.id === id);
+  if (!c || c.bookedId) return;
+  const rid = 'r' + Date.now() + Math.random().toString(36).slice(2, 6);
+  state.receipts.push({
+    id: rid, verNr: nextVerNr(),
+    date: new Date(c.ts).toISOString().slice(0, 10),
+    type: c.type, party: c.label || 'Kalkylator', desc: c.label || 'Uträkning',
+    exkl: c.exkl, vat: c.vat, total: c.total, rate: c.rate,
+    fileData: '', note: 'Från momskalkylatorn', createdAt: new Date().toISOString(),
+  });
+  c.bookedId = rid;
+  save(); renderAll(); toast('Tillagt som kvitto ✓');
+}
+
+function renderDeclaration() {
+  const t = declTotals();
+  const rows = [
+    ['05', 'Momspliktig försäljning (exkl. moms)', t.sales],
+    ['10', 'Utgående moms 25 %', t.u25],
+    ['11', 'Utgående moms 12 %', t.u12],
+    ['12', 'Utgående moms 6 %', t.u6],
+    ['48', 'Ingående moms att dra av', t.ing],
+  ];
+  const tbody = document.getElementById('declRows');
+  tbody.innerHTML = rows.map(([n, label, val]) =>
+    `<tr><td class="decl-ruta">${n}</td><td>${label}</td><td class="num">${kr(val)}</td></tr>`
+  ).join('') +
+    `<tr class="total"><td class="decl-ruta">49</td><td>Moms att ${t.toPay >= 0 ? 'betala' : 'få tillbaka'}</td><td class="num">${kr(Math.abs(t.toPay))}</td></tr>`;
+
+  const adv = [
+    ['20', 'Inköp av varor från annat EU-land'],
+    ['21', 'Inköp av tjänster från annat EU-land'],
+    ['35', 'Försäljning av varor till annat EU-land'],
+    ['39', 'Försäljning av tjänster till näringsidkare i EU'],
+  ];
+  document.getElementById('declAdvRows').innerHTML = adv.map(([n, label]) =>
+    `<tr><td class="decl-ruta">${n}</td><td>${label}</td><td class="num">0 kr</td></tr>`
+  ).join('');
+}
+
+function renderSettingsForm() {
+  document.getElementById('setName').value = state.settings.name;
+  document.getElementById('setOrg').value = state.settings.org;
+  document.getElementById('setPeriod').value = state.settings.period;
+}
+
+/* =========================================================
+   Actions
+   ========================================================= */
+function deleteReceipt(id) {
+  if (!confirm('Ta bort det här kvittot?')) return;
+  state.receipts = state.receipts.filter(r => r.id !== id);
+  save(); renderAll(); toast('Kvitto borttaget');
+}
+
+function nextVerNr() {
+  const max = state.receipts.reduce((m, r) => Math.max(m, r.verNr || 0), 0);
+  return max + 1;
+}
+
+/* ---------- Image compression to keep localStorage small ---------- */
+function compressImage(file) {
+  return new Promise((resolve) => {
+    if (!file) return resolve('');
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 1100;
+        let { width, height } = img;
+        if (width > max || height > max) {
+          const s = max / Math.max(width, height);
+          width = Math.round(width * s); height = Math.round(height * s);
+        }
+        const c = document.createElement('canvas');
+        c.width = width; c.height = height;
+        c.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(c.toDataURL('image/jpeg', 0.7));
+      };
+      img.onerror = () => resolve('');
+      img.src = reader.result;
+    };
+    reader.onerror = () => resolve('');
+    reader.readAsDataURL(file);
+  });
+}
+
+/* =========================================================
+   Wire up
+   ========================================================= */
+function navTo(view) {
+  document.querySelectorAll('.view').forEach(v => v.hidden = v.id !== 'view-' + view);
+  document.querySelectorAll('[data-view]').forEach(n =>
+    n.classList.toggle('active', n.dataset.view === view));
+  if (location.hash !== '#' + view) history.replaceState(null, '', '#' + view);
+  window.scrollTo(0, 0);
+}
+
+function setupNav() {
+  document.querySelectorAll('[data-view]').forEach(n =>
+    n.addEventListener('click', (e) => { e.preventDefault(); navTo(n.dataset.view); }));
+  document.querySelectorAll('[data-goto]').forEach(b =>
+    b.addEventListener('click', () => navTo(b.dataset.goto)));
+  const start = (location.hash || '#oversikt').slice(1);
+  navTo(['oversikt','kvitton','kalkylator','deklaration','anteckningar','installningar'].includes(start) ? start : 'oversikt');
+}
+
+function setupReceiptForm() {
+  const form = document.getElementById('receiptForm');
+  const dateEl = document.getElementById('rfDate');
+  dateEl.value = new Date().toISOString().slice(0, 10);
+
+  const readInputs = () => ({
+    amount: parseFloat(String(form.amount.value).replace(',', '.')) || 0,
+    rate: Number(form.rate.value),
+    inclusive: form.inclusive.value,
+  });
+  const updatePreview = () => {
+    const { amount, rate, inclusive } = readInputs();
+    const c = computeVat(amount, rate, inclusive);
+    document.getElementById('calcVat').textContent = kr(c.vat);
+    document.getElementById('calcExcl').textContent = kr(c.exkl);
+    document.getElementById('calcTotal').textContent = kr(c.total);
+  };
+  form.addEventListener('input', updatePreview);
+  updatePreview();
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const { amount, rate, inclusive } = readInputs();
+    if (amount <= 0) { toast('Fyll i ett belopp'); return; }
+    const c = computeVat(amount, rate, inclusive);
+    const fileData = await compressImage(form.file.files[0]);
+    state.receipts.push({
+      id: 'r' + Date.now() + Math.random().toString(36).slice(2, 6),
+      verNr: nextVerNr(),
+      date: form.date.value,
+      type: form.type.value,
+      party: form.party.value.trim(),
+      desc: form.desc.value.trim(),
+      exkl: c.exkl, vat: c.vat, total: c.total, rate,
+      fileData,
+      note: form.note.value.trim(),
+      createdAt: new Date().toISOString(),
+    });
+    save();
+    form.reset();
+    dateEl.value = new Date().toISOString().slice(0, 10);
+    updatePreview();
+    renderAll();
+    toast('Kvitto sparat ✓');
+  });
+  form.addEventListener('reset', () => setTimeout(updatePreview, 0));
+}
+
+function setupCalculator() {
+  const amount = document.getElementById('cAmount');
+  const incl = document.getElementById('cIncl');
+  const rate = document.getElementById('cRate');
+  const what = document.getElementById('cWhat');
+  const view = document.getElementById('view-kalkylator');
+
+  const read = () => ({
+    amount: parseFloat(String(amount.value).replace(',', '.')) || 0,
+    inclusive: incl.value,
+    rate: Number(rate.value),
+    type: view.querySelector('input[name="ctype"]:checked').value,
+    label: what.value.trim() || 'Uträkning',
+  });
+  const update = () => {
+    const v = read();
+    const c = computeVat(v.amount, v.rate, v.inclusive);
+    document.getElementById('cExcl').textContent = kr(c.exkl);
+    document.getElementById('cVat').textContent = kr(c.vat);
+    document.getElementById('cTotal').textContent = kr(c.total);
+    document.getElementById('cRateLbl').textContent = `(${v.rate} %)`;
+  };
+  view.addEventListener('input', update);
+  view.addEventListener('change', update);
+  update();
+
+  document.getElementById('calcSave').addEventListener('click', () => {
+    const v = read();
+    if (v.amount <= 0) { toast('Fyll i ett belopp'); amount.focus(); return; }
+    const c = computeVat(v.amount, v.rate, v.inclusive);
+    state.calculations.push({
+      id: 'c' + Date.now() + Math.random().toString(36).slice(2, 6),
+      ts: Date.now(),
+      label: v.label, type: v.type, amount: v.amount, inclusive: v.inclusive, rate: v.rate,
+      exkl: c.exkl, vat: c.vat, total: c.total, bookedId: null,
+    });
+    save();
+    amount.value = ''; what.value = '';
+    update(); renderCalcList();
+    toast('Uträkning sparad ✓');
+  });
+}
+
+function setupSettings() {
+  document.getElementById('settingsForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    state.settings.name = document.getElementById('setName').value.trim();
+    state.settings.org = document.getElementById('setOrg').value.trim();
+    const newPeriod = document.getElementById('setPeriod').value;
+    if (newPeriod !== state.settings.period) { state.settings.period = newPeriod; state.activePeriod = null; }
+    save(); renderAll(); toast('Sparat ✓'); navTo('oversikt');
+  });
+
+  document.getElementById('backupBtn').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `moms-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+  });
+  document.getElementById('restoreInput').addEventListener('change', (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        state = Object.assign(defaultState(), JSON.parse(reader.result));
+        save(); renderAll(); toast('Återställt ✓'); navTo('oversikt');
+      } catch { toast('Kunde inte läsa filen'); }
+    };
+    reader.readAsText(file);
+  });
+  document.getElementById('wipeBtn').addEventListener('click', () => {
+    if (!confirm('Radera ALLT? Detta går inte att ångra.')) return;
+    state = defaultState(); save(); renderAll(); toast('Allt raderat'); navTo('oversikt');
+  });
+}
+
+function setupNotes() {
+  const ta = document.getElementById('notes');
+  const saved = document.getElementById('notesSaved');
+  let timer;
+  ta.addEventListener('input', () => {
+    state.notes = ta.value;
+    clearTimeout(timer);
+    timer = setTimeout(() => { save(); saved.classList.add('show'); setTimeout(() => saved.classList.remove('show'), 1200); }, 400);
+  });
+}
+
+function setupPeriodSheet() {
+  const sheet = document.getElementById('periodSheet');
+  const open = () => {
+    const opts = document.getElementById('periodOptions');
+    const cur = activeKey();
+    opts.innerHTML = '';
+    periodChoices().reverse().forEach(key => {
+      const btn = document.createElement('button');
+      btn.className = 'period-opt' + (key === cur ? ' active' : '');
+      const dl = deadlineFor(state.settings.period, key);
+      btn.innerHTML = `<span>${periodLabel(state.settings.period, key)}</span><span class="muted small">deadline ${dl.getDate()}/${dl.getMonth()+1}</span>`;
+      btn.addEventListener('click', () => {
+        state.activePeriod = (key === currentPeriodKey(state.settings.period)) ? null : key;
+        save(); renderAll(); closeSheet();
+      });
+      opts.appendChild(btn);
+    });
+    sheet.hidden = false;
+  };
+  const closeSheet = () => { sheet.hidden = true; };
+  document.getElementById('periodPill').addEventListener('click', open);
+  sheet.querySelectorAll('[data-close-sheet]').forEach(el => el.addEventListener('click', closeSheet));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
+}
+
+function setupHints() {
+  document.querySelectorAll('.hint').forEach(h =>
+    h.addEventListener('click', () => toast(h.dataset.hint, 3500)));
+}
+
+function setupExport() {
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const rs = receiptsInPeriod();
+    const header = 'Vernr;Datum;Typ;Motpart;Beskrivning;Exkl moms;Momssats;Moms;Totalt';
+    const lines = rs.map(r => [
+      r.verNr, r.date, r.type, r.party, r.desc,
+      r.exkl.toFixed(2), r.rate + '%', r.vat.toFixed(2), r.total.toFixed(2)
+    ].map(csvCell).join(';'));
+    const csv = '﻿' + [header, ...lines].join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `moms-underlag-${activeKey()}.csv`;
+    a.click();
+    toast('Underlag exporterat ✓');
+  });
+}
+
+/* ---------- Small utils ---------- */
+function esc(s) { return String(s || '').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
+function csvCell(s) { s = String(s); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+function fmtDate(iso) { const d = new Date(iso + 'T00:00:00'); return `${d.getDate()} ${MONTHS[d.getMonth()].slice(0,3)}`; }
+function fmtDateTime(ts) { const d = new Date(ts); return `${d.getDate()} ${MONTHS[d.getMonth()].slice(0,3)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
+let toastTimer;
+function toast(msg, ms = 2200) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.hidden = false;
+  requestAnimationFrame(() => t.classList.add('show'));
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.hidden = true, 300); }, ms);
+}
+
+/* ---------- Boot ---------- */
+function boot() {
+  setupNav();
+  setupReceiptForm();
+  setupCalculator();
+  setupSettings();
+  setupNotes();
+  setupPeriodSheet();
+  setupHints();
+  setupExport();
+  renderAll();
+  // First run: nudge to settings if nothing configured.
+  if (!state.settings.name && !state.receipts.length) {
+    toast('Välkommen! Ställ in din period under Inställningar ⚙', 3500);
+  }
+}
+document.addEventListener('DOMContentLoaded', boot);
+
+</script>
+</body>
+</html>
