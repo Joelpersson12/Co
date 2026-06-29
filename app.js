@@ -691,6 +691,15 @@ function toIsoDate(s) {
   return isNaN(d) ? new Date().toISOString().slice(0, 10) : d.toISOString().slice(0, 10);
 }
 
+// Pick the transaction-date column, preferring settlement/created dates over due dates.
+function findDate(headers) {
+  for (const re of [/available.?on/, /created.*utc/, /^created/, /date.*utc/, /date/]) {
+    const i = headers.findIndex(h => re.test(h) && !/due/.test(h));
+    if (i > -1) return i;
+  }
+  return -1;
+}
+
 // Pick a "who" column, avoiding amount/currency/id columns that contain "customer".
 function findCust(headers) {
   const bad = /(amount|currency|facing|fee|net|gross|number|^id$|_id$|country|zip|postal)/;
@@ -710,7 +719,7 @@ function analyzeStripe(rows) {
   const col = {
     id: find(/balance.?transaction|^id$|^charge.?id|source.?id/),
     cat: find(/reporting.?category|^type$/),
-    date: find(/available.?on|created.*utc|^created/),
+    date: findDate(headers),
     gross: find(/^gross$/),
     net: find(/^net$/),
     fee: find(/^fee$|^fees$/),
@@ -718,30 +727,42 @@ function analyzeStripe(rows) {
     convAmt: headers.findIndex(h => /converted.*amount/.test(h) && !/refund/.test(h)),
     convCur: find(/converted.*currency/),
     amount: headers.findIndex(h => /^amount$/.test(h) && !/refund/.test(h)),
+    total: find(/^total$/),
+    paid: find(/^amount paid$/),
+    sub: find(/^subtotal$/),
+    due: find(/^amount due$/),
     cust: findCust(headers),
   };
+  // An Invoices export has amount-paid/number/subscription but no gross/fee/converted.
+  const invoiceLike = col.gross < 0 && col.convAmt < 0 && col.fee < 0 &&
+    find(/amount paid|amount due|^number$|subscription/) > -1;
 
   const items = []; let curWarn = '';
+  const amountFromRow = (c) => {
+    for (const k of ['gross', 'convAmt', 'amount', 'total', 'paid', 'sub', 'due']) {
+      if (col[k] > -1) {
+        const curCol = k === 'convAmt' ? col.convCur : col.cur;
+        return { gross: numSv(c[col[k]]), cur: curCol > -1 ? (c[curCol] || '') : '' };
+      }
+    }
+    return null;
+  };
   for (let r = 1; r < rows.length; r++) {
     const c = rows[r];
     const cat = col.cat > -1 ? (c[col.cat] || '').toLowerCase() : '';
     if (/payout/.test(cat)) continue;                      // skip the payout line itself
-    let gross, cur;
-    if (col.gross > -1) { gross = numSv(c[col.gross]); cur = col.cur > -1 ? c[col.cur] : ''; }
-    else if (col.convAmt > -1) { gross = numSv(c[col.convAmt]); cur = col.convCur > -1 ? c[col.convCur] : ''; }
-    else if (col.amount > -1) { gross = numSv(c[col.amount]); cur = col.cur > -1 ? c[col.cur] : ''; }
-    else continue;
-    if (!(gross > 0)) continue;                            // skip refunds/adjustments/zero
+    const a = amountFromRow(c);
+    if (!a || !(a.gross > 0)) continue;                    // skip refunds/adjustments/zero
     const fee = col.fee > -1 ? Math.abs(numSv(c[col.fee])) : 0;
-    if (cur && cur.toUpperCase() !== 'SEK') curWarn = cur.toUpperCase();
+    if (a.cur && a.cur.toUpperCase() !== 'SEK') curWarn = a.cur.toUpperCase();
     items.push({
       id: col.id > -1 ? (c[col.id] || '') : '',
       date: toIsoDate(col.date > -1 ? c[col.date] : ''),
-      gross, fee,
+      gross: a.gross, fee,
       party: (col.cust > -1 ? (c[col.cust] || '') : '').trim() || 'Stripe-kund',
     });
   }
-  return { items, curWarn, headers };
+  return { items, curWarn, invoiceLike, headers };
 }
 
 let pendingImport = null;
@@ -764,29 +785,33 @@ function setupStripeImport() {
         preview.innerHTML = `<div class="imp-warn">${res.error || 'Hittade inga rader att importera.'}</div>`;
         return;
       }
+      const invoiceMsg = `Det här ser ut som en <strong>Faktura-export</strong> — den är i utländsk valuta och saknar Stripe-avgifter. För korrekt moms i SEK: i Stripe, gå till <strong>Balance → Payouts</strong> och exportera den rapporten istället (den har gross/fee/net i SEK).`;
       if (!res.items.length) {
         preview.hidden = false; confirmBtn.hidden = true;
-        preview.innerHTML = `<div class="imp-warn">Hittade inga försäljningsrader. Kontrollera att du exporterat rätt rapport (med kolumnerna gross/fee, eller Converted Amount).</div>`;
+        preview.innerHTML = `<div class="imp-warn">${res.invoiceLike ? invoiceMsg : 'Hittade inga försäljningsrader. Kontrollera att du exporterat rätt rapport (med kolumnerna gross/fee, eller Converted Amount).'}</div>`;
         return;
       }
       const incFees = document.getElementById('impFees').checked;
       const totGross = res.items.reduce((s, i) => s + i.gross, 0);
       const totFee = res.items.reduce((s, i) => s + i.fee, 0);
       const dupes = res.items.filter(i => i.id && state.importedIds[i.id]).length;
-      pendingImport = res.items;
+      const blockImport = !!res.curWarn;   // don't import non-SEK amounts as SEK
+      pendingImport = blockImport ? null : res.items;
       const rowsHtml = res.items.slice(0, 5).map(i =>
         `<tr><td>${fmtDate(i.date)}</td><td>${esc(i.party)}</td><td class="num">${kr(i.gross)}</td><td class="num">${kr(i.fee)}</td></tr>`
       ).join('');
-      preview.hidden = false; confirmBtn.hidden = false;
+      preview.hidden = false; confirmBtn.hidden = blockImport;
       preview.innerHTML = `
         <h4>Förhandsgranskning</h4>
-        <div class="imp-stat"><span>Försäljningar att skapa</span><strong>${res.items.length} st</strong></div>
+        <div class="imp-stat"><span>Försäljningar ${blockImport ? 'i filen' : 'att skapa'}</span><strong>${res.items.length} st</strong></div>
         <div class="imp-stat"><span>Summa försäljning (brutto)</span><strong>${kr(totGross)}</strong></div>
         <div class="imp-stat"><span>Stripe-avgifter ${incFees ? '(skapas som inköp)' : '(hoppas över)'}</span><strong>${kr(totFee)}</strong></div>
         ${dupes ? `<div class="imp-stat"><span>Redan importerade (hoppas över)</span><strong>${dupes} st</strong></div>` : ''}
         <table><thead><tr><th>Datum</th><th>Motpart</th><th class="num">Brutto</th><th class="num">Avgift</th></tr></thead><tbody>${rowsHtml}</tbody></table>
         ${res.items.length > 5 ? `<p class="muted small">…och ${res.items.length - 5} till.</p>` : ''}
-        ${res.curWarn ? `<div class="imp-warn">Obs: beloppen verkar vara i ${res.curWarn}, inte SEK. Exportera en rapport i SEK (Payout reconciliation) för rätt summor.</div>` : `<div class="imp-ok">Beloppen tolkas som SEK ✓</div>`}`;
+        ${res.curWarn
+          ? `<div class="imp-warn">Beloppen är i ${res.curWarn}, inte SEK${res.invoiceLike ? ' (faktura-export utan avgifter)' : ''}. Importen är pausad så att inga felaktiga belopp bokförs.<br>Exportera istället <strong>Balance → Payouts</strong> i SEK, så funkar det direkt.</div>`
+          : `<div class="imp-ok">Beloppen tolkas som SEK ✓</div>`}`;
     };
     reader.readAsText(file);
   });
