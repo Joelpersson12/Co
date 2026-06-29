@@ -279,6 +279,15 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
   font-size: 1.9rem;
   background: var(--grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
 }
+.result-context {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 22px; border-radius: var(--radius-lg); margin-bottom: 14px;
+  font-weight: 700; border: 1px solid transparent;
+}
+.result-context span { font-size: 1.02rem; }
+.result-context strong { font-size: 1.4rem; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.result-context.is-pay { background: var(--amber-bg); color: var(--amber); border-color: #f0dcb4; }
+.result-context.is-refund { background: var(--green-bg); color: var(--green); border-color: #bfe9d4; }
 #calcSave { margin-bottom: 18px; padding: 15px; font-size: 1rem; }
 
 .calc-list { display: flex; flex-direction: column; gap: 10px; }

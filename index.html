@@ -268,6 +268,11 @@
             <div class="result-row total"><span>Totalt inkl. moms</span><strong id="cTotal">0 kr</strong></div>
           </div>
 
+          <div class="result-context is-pay" id="cContext">
+            <span id="cContextLabel">Moms att betala</span>
+            <strong id="cContextVal">0 kr</strong>
+          </div>
+
           <button class="btn-primary btn-block" id="calcSave"><svg class="ic"><use href="#i-check"/></svg> Spara uträkning</button>
 
           <div class="panel">
@@ -348,6 +353,19 @@
                 <option value="helar">En gång per år (helår)</option>
               </select>
               <p class="field-help">Vet du inte? Står på ditt registreringsbevis från Skatteverket. Kvartal är vanligast.</p>
+            </div>
+
+            <div class="grid-2">
+              <div class="field">
+                <label for="setStart">Företagets startdatum <span class="muted small">(valfritt)</span></label>
+                <input type="date" id="setStart" />
+                <p class="field-help">Perioder före detta datum döljs.</p>
+              </div>
+              <div class="field">
+                <label for="setDeadline">Egen deadline <span class="muted small">(valfritt)</span></label>
+                <input type="date" id="setDeadline" />
+                <p class="field-help">Har Skatteverket gett dig ett exakt datum? Skriv det här så används det istället.</p>
+              </div>
             </div>
 
             <div class="form-actions">

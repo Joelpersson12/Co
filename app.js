@@ -12,7 +12,7 @@ let state = load();
 
 function defaultState() {
   return {
-    settings: { name: '', org: '', period: 'kvartal' },
+    settings: { name: '', org: '', period: 'kvartal', start: '', deadlineOverride: '' },
     receipts: [],          // {id, verNr, date, type, party, desc, exkl, vat, total, rate, fileData, note, createdAt}
     calculations: [],      // {id, ts, label, type, amount, inclusive, rate, exkl, vat, total, bookedId}
     notes: '',
@@ -116,7 +116,14 @@ function periodChoices() {
       keys.push(currentPeriodKey('kvartal', d));
     }
   }
-  return [...new Set(keys)];
+  let unique = [...new Set(keys)];
+  // Hide periods that ended before the company started.
+  if (state.settings.start) {
+    const start = new Date(state.settings.start + 'T00:00:00');
+    const filtered = unique.filter(k => periodRange(period, k).end >= start);
+    if (filtered.length) unique = filtered;
+  }
+  return unique;
 }
 
 /* ---------- Receipts for active period ---------- */
@@ -169,17 +176,20 @@ function renderTopbar() {
 
 function renderOverview() {
   const t = declTotals();
-  const dl = deadlineFor(state.settings.period, activeKey());
+  const override = state.settings.deadlineOverride;
+  const dl = override ? new Date(override + 'T00:00:00') : deadlineFor(state.settings.period, activeKey());
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const days = Math.round((dl - today) / 86400000);
 
   document.getElementById('deadlineDate').textContent =
     `${dl.getDate()} ${MONTHS[dl.getMonth()]} ${dl.getFullYear()}`;
   const cd = document.getElementById('deadlineCountdown');
-  if (days > 1) cd.textContent = `Om ${days} dagar`;
-  else if (days === 1) cd.textContent = 'I morgon!';
-  else if (days === 0) cd.textContent = 'Idag!';
-  else cd.textContent = `${Math.abs(days)} dagar sedan (försenad?)`;
+  let txt;
+  if (days > 1) txt = `Om ${days} dagar`;
+  else if (days === 1) txt = 'I morgon!';
+  else if (days === 0) txt = 'Idag!';
+  else txt = `${Math.abs(days)} dagar sedan (försenad?)`;
+  cd.textContent = txt + (override ? ' · eget datum' : '');
 
   document.getElementById('heroAmount').textContent = kr(Math.abs(t.toPay));
   const badge = document.getElementById('heroAmountBadge');
@@ -337,6 +347,8 @@ function renderSettingsForm() {
   document.getElementById('setName').value = state.settings.name;
   document.getElementById('setOrg').value = state.settings.org;
   document.getElementById('setPeriod').value = state.settings.period;
+  document.getElementById('setStart').value = state.settings.start || '';
+  document.getElementById('setDeadline').value = state.settings.deadlineOverride || '';
 }
 
 /* =========================================================
@@ -469,6 +481,12 @@ function setupCalculator() {
     document.getElementById('cVat').textContent = kr(c.vat);
     document.getElementById('cTotal').textContent = kr(c.total);
     document.getElementById('cRateLbl').textContent = `(${v.rate} %)`;
+    const ctx = document.getElementById('cContext');
+    const isInkop = v.type === 'inkop';
+    document.getElementById('cContextLabel').textContent = isInkop ? 'Moms att få tillbaka' : 'Moms att betala';
+    document.getElementById('cContextVal').textContent = kr(c.vat);
+    ctx.classList.toggle('is-refund', isInkop);
+    ctx.classList.toggle('is-pay', !isInkop);
   };
   view.addEventListener('input', update);
   view.addEventListener('change', update);
@@ -496,6 +514,8 @@ function setupSettings() {
     e.preventDefault();
     state.settings.name = document.getElementById('setName').value.trim();
     state.settings.org = document.getElementById('setOrg').value.trim();
+    state.settings.start = document.getElementById('setStart').value;
+    state.settings.deadlineOverride = document.getElementById('setDeadline').value;
     const newPeriod = document.getElementById('setPeriod').value;
     if (newPeriod !== state.settings.period) { state.settings.period = newPeriod; state.activePeriod = null; }
     save(); renderAll(); toast('Sparat ✓'); navTo('oversikt');
