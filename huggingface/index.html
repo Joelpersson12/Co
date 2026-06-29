@@ -165,6 +165,21 @@ h3 { font-size: 1.05rem; font-weight: 700; }
   background: rgba(255,255,255,0.22); font-size: 0.82rem; font-weight: 700;
 }
 
+/* ===================== Reminder banner & deadline actions ===================== */
+.reminder-banner {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 18px; border-radius: var(--radius); margin-bottom: 16px;
+  font-weight: 600; font-size: 0.95rem;
+}
+.reminder-banner.warn { background: var(--amber-bg); color: #6b4e16; border: 1px solid #f0dcb4; }
+.reminder-banner.late { background: var(--red-bg); color: #8a1f30; border: 1px solid #f3c6cf; }
+.reminder-banner::before { content: "⏰"; font-size: 1.1rem; }
+.reminder-banner.late::before { content: "⚠️"; }
+
+.deadline-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; margin-top: -4px; }
+.deadline-actions .btn-ghost { font-size: 0.9rem; padding: 10px 16px; }
+.deadline-actions .btn-ghost.on { border-color: var(--green); color: var(--green); background: var(--green-bg); }
+
 /* ===================== Tiles ===================== */
 .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }
 .tile {
@@ -424,6 +439,12 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
 }
 
 </style>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon-192.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Moms" />
 </head>
 <body>
   <!-- SVG icon sprite -->
@@ -438,6 +459,8 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
     <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
     <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-calc" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="8" y="6" width="8" height="3" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M9 13h0M12.5 13h0M16 13h0M9 16h0M12.5 16h0M16 16h0" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 21a2 2 0 004 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-cal" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4 9h16M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
   </svg>
 
   <div class="app">
@@ -483,6 +506,9 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
             <p class="muted" id="periodSub">Din momsredovisning för perioden.</p>
           </div>
 
+          <!-- Reminder banner -->
+          <div class="reminder-banner" id="reminderBanner" hidden></div>
+
           <!-- Deadline hero -->
           <div class="hero-card">
             <div class="hero-grad" aria-hidden="true"></div>
@@ -497,6 +523,11 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
               <div class="hero-amount-val" id="heroAmount">0 kr</div>
               <span class="badge-pay" id="heroAmountBadge">—</span>
             </div>
+          </div>
+
+          <div class="deadline-actions">
+            <button class="btn-ghost" id="icsBtn"><svg class="ic"><use href="#i-cal"/></svg> Lägg till i kalender</button>
+            <button class="btn-ghost" id="notifyBtn"><svg class="ic"><use href="#i-bell"/></svg> Aktivera påminnelser</button>
           </div>
 
           <!-- Summary tiles -->
@@ -843,10 +874,12 @@ const VAT_RATES = [25, 12, 6, 0];
 
 /* ---------- State ---------- */
 let state = load();
+let currentDeadline = null;     // Date of the active period's deadline
+let currentDeadlineDays = null; // days left until it
 
 function defaultState() {
   return {
-    settings: { name: '', org: '', period: 'kvartal', start: '', deadlineOverride: '' },
+    settings: { name: '', org: '', period: 'kvartal', start: '', deadlineOverride: '', notify: false },
     receipts: [],          // {id, verNr, date, type, party, desc, exkl, vat, total, rate, fileData, note, createdAt}
     calculations: [],      // {id, ts, label, type, amount, inclusive, rate, exkl, vat, total, bookedId}
     notes: '',
@@ -1027,6 +1060,25 @@ function renderOverview() {
   else if (days === 0) txt = 'Idag!';
   else txt = `${Math.abs(days)} dagar sedan (försenad?)`;
   cd.textContent = txt + (override ? ' · eget datum' : '');
+
+  // Stash for calendar export / notifications.
+  currentDeadline = dl;
+  currentDeadlineDays = days;
+
+  // Reminder banner: appears when the deadline is close or passed.
+  const banner = document.getElementById('reminderBanner');
+  const dStr = `${dl.getDate()} ${MONTHS[dl.getMonth()]}`;
+  if (days < 0) {
+    banner.hidden = false; banner.className = 'reminder-banner late';
+    banner.textContent = `Deadline (${dStr}) har passerat. Deklarera så snart du kan.`;
+  } else if (days <= 14) {
+    banner.hidden = false; banner.className = 'reminder-banner warn';
+    banner.textContent = `Snart dags! Bara ${days} ${days === 1 ? 'dag' : 'dagar'} kvar till deadline ${dStr}. Stäm av och deklarera.`;
+  } else {
+    banner.hidden = true;
+  }
+
+  document.getElementById('notifyBtn').classList.toggle('on', !!state.settings.notify);
 
   document.getElementById('heroAmount').textContent = kr(Math.abs(t.toPay));
   const badge = document.getElementById('heroAmountBadge');
@@ -1418,6 +1470,75 @@ function setupPeriodSheet() {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
 }
 
+/* ---------- Reminders: calendar (.ics) + notifications ---------- */
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+function downloadIcs() {
+  if (!currentDeadline) return;
+  const d = currentDeadline;
+  const dateStr = `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}`;
+  const next = new Date(d); next.setDate(next.getDate() + 1);
+  const endStr = `${next.getFullYear()}${pad2(next.getMonth() + 1)}${pad2(next.getDate())}`;
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  const period = periodLabel(state.settings.period, activeKey());
+  const lines = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Moms//SV//', 'CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT',
+    `UID:moms-${activeKey()}-${dateStr}@moms.local`,
+    `DTSTAMP:${stamp}`,
+    `DTSTART;VALUE=DATE:${dateStr}`,
+    `DTEND;VALUE=DATE:${endStr}`,
+    `SUMMARY:Deklarera & betala moms (${period})`,
+    'DESCRIPTION:Lämna momsdeklaration och betala hos Skatteverket. Kontrollera exakt datum.',
+    'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Moms-deadline om 7 dagar', 'TRIGGER:-P7D', 'END:VALARM',
+    'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Moms-deadline imorgon', 'TRIGGER:-P1D', 'END:VALARM',
+    'END:VEVENT', 'END:VCALENDAR',
+  ];
+  const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `moms-deadline-${activeKey()}.ics`;
+  a.click();
+  toast('Kalenderpåminnelse skapad 📅');
+}
+
+function maybeNotify(force) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  if (!state.settings.notify || currentDeadline == null) return;
+  if (currentDeadlineDays < 0 || currentDeadlineDays > 14) return;
+  const key = `${activeKey()}-${currentDeadline.toDateString()}`;
+  if (!force && state._notifiedKey === key) return;
+  state._notifiedKey = key; save();
+  const dStr = `${currentDeadline.getDate()} ${MONTHS[currentDeadline.getMonth()]}`;
+  new Notification('Moms — deadline närmar sig', {
+    body: `${currentDeadlineDays} dagar kvar till ${dStr}. Dags att deklarera.`,
+    icon: 'icon-192.png', badge: 'icon-192.png',
+  });
+}
+
+function setupReminders() {
+  document.getElementById('icsBtn').addEventListener('click', downloadIcs);
+  document.getElementById('notifyBtn').addEventListener('click', async () => {
+    if (!('Notification' in window)) { toast('Din webbläsare stödjer inte notiser'); return; }
+    if (state.settings.notify) {
+      state.settings.notify = false; save(); renderOverview(); toast('Påminnelser av');
+      return;
+    }
+    const perm = await Notification.requestPermission();
+    if (perm === 'granted') {
+      state.settings.notify = true; save(); renderOverview();
+      toast('Påminnelser på 🔔'); maybeNotify(true);
+    } else {
+      toast('Notiser blockerade i webbläsaren');
+    }
+  });
+}
+
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
 function setupHints() {
   document.querySelectorAll('.hint').forEach(h =>
     h.addEventListener('click', () => toast(h.dataset.hint, 3500)));
@@ -1465,7 +1586,10 @@ function boot() {
   setupPeriodSheet();
   setupHints();
   setupExport();
+  setupReminders();
+  registerServiceWorker();
   renderAll();
+  maybeNotify(false);
   // First run: nudge to settings if nothing configured.
   if (!state.settings.name && !state.receipts.length) {
     toast('Välkommen! Ställ in din period under Inställningar ⚙', 3500);

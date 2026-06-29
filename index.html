@@ -10,6 +10,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon-192.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Moms" />
 </head>
 <body>
   <!-- SVG icon sprite -->
@@ -24,6 +30,8 @@
     <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
     <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-calc" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="8" y="6" width="8" height="3" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M9 13h0M12.5 13h0M16 13h0M9 16h0M12.5 16h0M16 16h0" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 21a2 2 0 004 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-cal" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4 9h16M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
   </svg>
 
   <div class="app">
@@ -69,6 +77,9 @@
             <p class="muted" id="periodSub">Din momsredovisning för perioden.</p>
           </div>
 
+          <!-- Reminder banner -->
+          <div class="reminder-banner" id="reminderBanner" hidden></div>
+
           <!-- Deadline hero -->
           <div class="hero-card">
             <div class="hero-grad" aria-hidden="true"></div>
@@ -83,6 +94,11 @@
               <div class="hero-amount-val" id="heroAmount">0 kr</div>
               <span class="badge-pay" id="heroAmountBadge">—</span>
             </div>
+          </div>
+
+          <div class="deadline-actions">
+            <button class="btn-ghost" id="icsBtn"><svg class="ic"><use href="#i-cal"/></svg> Lägg till i kalender</button>
+            <button class="btn-ghost" id="notifyBtn"><svg class="ic"><use href="#i-bell"/></svg> Aktivera påminnelser</button>
           </div>
 
           <!-- Summary tiles -->

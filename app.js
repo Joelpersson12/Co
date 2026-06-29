@@ -9,10 +9,12 @@ const VAT_RATES = [25, 12, 6, 0];
 
 /* ---------- State ---------- */
 let state = load();
+let currentDeadline = null;     // Date of the active period's deadline
+let currentDeadlineDays = null; // days left until it
 
 function defaultState() {
   return {
-    settings: { name: '', org: '', period: 'kvartal', start: '', deadlineOverride: '' },
+    settings: { name: '', org: '', period: 'kvartal', start: '', deadlineOverride: '', notify: false },
     receipts: [],          // {id, verNr, date, type, party, desc, exkl, vat, total, rate, fileData, note, createdAt}
     calculations: [],      // {id, ts, label, type, amount, inclusive, rate, exkl, vat, total, bookedId}
     notes: '',
@@ -193,6 +195,25 @@ function renderOverview() {
   else if (days === 0) txt = 'Idag!';
   else txt = `${Math.abs(days)} dagar sedan (försenad?)`;
   cd.textContent = txt + (override ? ' · eget datum' : '');
+
+  // Stash for calendar export / notifications.
+  currentDeadline = dl;
+  currentDeadlineDays = days;
+
+  // Reminder banner: appears when the deadline is close or passed.
+  const banner = document.getElementById('reminderBanner');
+  const dStr = `${dl.getDate()} ${MONTHS[dl.getMonth()]}`;
+  if (days < 0) {
+    banner.hidden = false; banner.className = 'reminder-banner late';
+    banner.textContent = `Deadline (${dStr}) har passerat. Deklarera så snart du kan.`;
+  } else if (days <= 14) {
+    banner.hidden = false; banner.className = 'reminder-banner warn';
+    banner.textContent = `Snart dags! Bara ${days} ${days === 1 ? 'dag' : 'dagar'} kvar till deadline ${dStr}. Stäm av och deklarera.`;
+  } else {
+    banner.hidden = true;
+  }
+
+  document.getElementById('notifyBtn').classList.toggle('on', !!state.settings.notify);
 
   document.getElementById('heroAmount').textContent = kr(Math.abs(t.toPay));
   const badge = document.getElementById('heroAmountBadge');
@@ -584,6 +605,75 @@ function setupPeriodSheet() {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
 }
 
+/* ---------- Reminders: calendar (.ics) + notifications ---------- */
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+function downloadIcs() {
+  if (!currentDeadline) return;
+  const d = currentDeadline;
+  const dateStr = `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}`;
+  const next = new Date(d); next.setDate(next.getDate() + 1);
+  const endStr = `${next.getFullYear()}${pad2(next.getMonth() + 1)}${pad2(next.getDate())}`;
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  const period = periodLabel(state.settings.period, activeKey());
+  const lines = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Moms//SV//', 'CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT',
+    `UID:moms-${activeKey()}-${dateStr}@moms.local`,
+    `DTSTAMP:${stamp}`,
+    `DTSTART;VALUE=DATE:${dateStr}`,
+    `DTEND;VALUE=DATE:${endStr}`,
+    `SUMMARY:Deklarera & betala moms (${period})`,
+    'DESCRIPTION:Lämna momsdeklaration och betala hos Skatteverket. Kontrollera exakt datum.',
+    'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Moms-deadline om 7 dagar', 'TRIGGER:-P7D', 'END:VALARM',
+    'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Moms-deadline imorgon', 'TRIGGER:-P1D', 'END:VALARM',
+    'END:VEVENT', 'END:VCALENDAR',
+  ];
+  const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `moms-deadline-${activeKey()}.ics`;
+  a.click();
+  toast('Kalenderpåminnelse skapad 📅');
+}
+
+function maybeNotify(force) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  if (!state.settings.notify || currentDeadline == null) return;
+  if (currentDeadlineDays < 0 || currentDeadlineDays > 14) return;
+  const key = `${activeKey()}-${currentDeadline.toDateString()}`;
+  if (!force && state._notifiedKey === key) return;
+  state._notifiedKey = key; save();
+  const dStr = `${currentDeadline.getDate()} ${MONTHS[currentDeadline.getMonth()]}`;
+  new Notification('Moms — deadline närmar sig', {
+    body: `${currentDeadlineDays} dagar kvar till ${dStr}. Dags att deklarera.`,
+    icon: 'icon-192.png', badge: 'icon-192.png',
+  });
+}
+
+function setupReminders() {
+  document.getElementById('icsBtn').addEventListener('click', downloadIcs);
+  document.getElementById('notifyBtn').addEventListener('click', async () => {
+    if (!('Notification' in window)) { toast('Din webbläsare stödjer inte notiser'); return; }
+    if (state.settings.notify) {
+      state.settings.notify = false; save(); renderOverview(); toast('Påminnelser av');
+      return;
+    }
+    const perm = await Notification.requestPermission();
+    if (perm === 'granted') {
+      state.settings.notify = true; save(); renderOverview();
+      toast('Påminnelser på 🔔'); maybeNotify(true);
+    } else {
+      toast('Notiser blockerade i webbläsaren');
+    }
+  });
+}
+
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
 function setupHints() {
   document.querySelectorAll('.hint').forEach(h =>
     h.addEventListener('click', () => toast(h.dataset.hint, 3500)));
@@ -631,7 +721,10 @@ function boot() {
   setupPeriodSheet();
   setupHints();
   setupExport();
+  setupReminders();
+  registerServiceWorker();
   renderAll();
+  maybeNotify(false);
   // First run: nudge to settings if nothing configured.
   if (!state.settings.name && !state.receipts.length) {
     toast('Välkommen! Ställ in din period under Inställningar ⚙', 3500);
