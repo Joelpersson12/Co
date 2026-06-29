@@ -160,6 +160,7 @@ h3 { font-size: 1.05rem; font-weight: 700; }
   padding: 18px 20px; box-shadow: var(--shadow);
 }
 .tile-label { display: flex; align-items: center; gap: 6px; color: var(--text-dim); font-size: 0.88rem; font-weight: 600; }
+.tile-sub { display: block; color: var(--text-faint); font-size: 0.76rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
 .tile-val { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; margin-top: 6px; }
 
 .hint {
