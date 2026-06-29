@@ -81,7 +81,10 @@ function deadlineFor(period, key) {
   while (dueMonth > 11) { dueMonth -= 12; dueYear += 1; }
   let day = period === 'helar' ? 26 : 12;
   if (period !== 'helar' && (dueMonth === 0 || dueMonth === 7)) day = 17; // Jan/Aug
-  return new Date(dueYear, dueMonth, day);
+  const d = new Date(dueYear, dueMonth, day);
+  // If the deadline lands on a weekend it moves to the next weekday.
+  while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+  return d;
 }
 
 function periodLabel(period, key) {
