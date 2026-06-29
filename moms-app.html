@@ -1675,15 +1675,21 @@ function analyzeStripe(rows) {
     const cat = col.cat > -1 ? (c[col.cat] || '').toLowerCase() : '';
     if (/payout/.test(cat)) continue;                      // skip the payout line itself
     const a = amountFromRow(c);
-    if (!a || !(a.gross > 0)) continue;                    // skip refunds/adjustments/zero
-    const fee = col.fee > -1 ? Math.abs(numSv(c[col.fee])) : 0;
+    if (!a) continue;
     if (a.cur && a.cur.toUpperCase() !== 'SEK') curWarn = a.cur.toUpperCase();
-    items.push({
-      id: col.id > -1 ? (c[col.id] || '') : '',
-      date: toIsoDate(col.date > -1 ? c[col.date] : ''),
-      gross: a.gross, fee,
-      party: (col.cust > -1 ? (c[col.cust] || '') : '').trim() || 'Stripe-kund',
-    });
+    const id = col.id > -1 ? (c[col.id] || '') : '';
+    const date = toIsoDate(col.date > -1 ? c[col.date] : '');
+    if (a.gross > 0) {                                      // a sale/charge
+      const fee = col.fee > -1 ? Math.abs(numSv(c[col.fee])) : 0;
+      items.push({
+        kind: 'sale', id, date, gross: a.gross, fee,
+        party: (col.cust > -1 ? (c[col.cust] || '') : '').trim() || 'Stripe-kund',
+      });
+    } else if (/fee/.test(cat)) {                          // a standalone Stripe fee row
+      const amt = Math.abs(a.gross) || (col.fee > -1 ? Math.abs(numSv(c[col.fee])) : 0);
+      if (amt > 0) items.push({ kind: 'fee', id, date, fee: amt });
+    }
+    // refunds / adjustments / zero rows are ignored
   }
   return { items, curWarn, invoiceLike, headers };
 }
@@ -1715,23 +1721,26 @@ function setupStripeImport() {
         return;
       }
       const incFees = document.getElementById('impFees').checked;
-      const totGross = res.items.reduce((s, i) => s + i.gross, 0);
-      const totFee = res.items.reduce((s, i) => s + i.fee, 0);
+      const sales = res.items.filter(i => i.kind === 'sale');
+      const totGross = sales.reduce((s, i) => s + (i.gross || 0), 0);
+      const totFee = res.items.reduce((s, i) => s + (i.fee || 0), 0);
       const dupes = res.items.filter(i => i.id && state.importedIds[i.id]).length;
       const blockImport = !!res.curWarn;   // don't import non-SEK amounts as SEK
       pendingImport = blockImport ? null : res.items;
-      const rowsHtml = res.items.slice(0, 5).map(i =>
-        `<tr><td>${fmtDate(i.date)}</td><td>${esc(i.party)}</td><td class="num">${kr(i.gross)}</td><td class="num">${kr(i.fee)}</td></tr>`
+      const rowsHtml = res.items.slice(0, 6).map(i =>
+        i.kind === 'fee'
+          ? `<tr><td>${fmtDate(i.date)}</td><td>Stripe-avgift</td><td class="num">—</td><td class="num">${kr(i.fee)}</td></tr>`
+          : `<tr><td>${fmtDate(i.date)}</td><td>${esc(i.party)}</td><td class="num">${kr(i.gross)}</td><td class="num">${kr(i.fee)}</td></tr>`
       ).join('');
       preview.hidden = false; confirmBtn.hidden = blockImport;
       preview.innerHTML = `
         <h4>Förhandsgranskning</h4>
-        <div class="imp-stat"><span>Försäljningar ${blockImport ? 'i filen' : 'att skapa'}</span><strong>${res.items.length} st</strong></div>
+        <div class="imp-stat"><span>Försäljningar ${blockImport ? 'i filen' : 'att skapa'}</span><strong>${sales.length} st</strong></div>
         <div class="imp-stat"><span>Summa försäljning (brutto)</span><strong>${kr(totGross)}</strong></div>
         <div class="imp-stat"><span>Stripe-avgifter ${incFees ? '(skapas som inköp)' : '(hoppas över)'}</span><strong>${kr(totFee)}</strong></div>
         ${dupes ? `<div class="imp-stat"><span>Redan importerade (hoppas över)</span><strong>${dupes} st</strong></div>` : ''}
         <table><thead><tr><th>Datum</th><th>Motpart</th><th class="num">Brutto</th><th class="num">Avgift</th></tr></thead><tbody>${rowsHtml}</tbody></table>
-        ${res.items.length > 5 ? `<p class="muted small">…och ${res.items.length - 5} till.</p>` : ''}
+        ${res.items.length > 6 ? `<p class="muted small">…och ${res.items.length - 6} till.</p>` : ''}
         ${res.curWarn
           ? `<div class="imp-warn">Beloppen är i ${res.curWarn}, inte SEK${res.invoiceLike ? ' (faktura-export utan avgifter)' : ''}. Importen är pausad så att inga felaktiga belopp bokförs.<br>Exportera istället <strong>Balance → Payouts</strong> i SEK, så funkar det direkt.</div>`
           : `<div class="imp-ok">Beloppen tolkas som SEK ✓</div>`}`;
@@ -1744,23 +1753,25 @@ function setupStripeImport() {
     const rate = Number(document.getElementById('impRate').value);
     const incFees = document.getElementById('impFees').checked;
     let ver = nextVerNr();
+    const newId = () => 'r' + Date.now() + Math.random().toString(36).slice(2, 6);
+    const feeReceipt = (date, amt) => ({
+      id: newId(), verNr: ver++, date, type: 'inkop', party: 'Stripe', desc: 'Stripe-avgift',
+      exkl: amt, vat: 0, total: amt, rate: 0, fileData: '',
+      note: 'Importerad från Stripe (omvänd skattskyldighet – moms ej avdragen här)', createdAt: new Date().toISOString(),
+    });
     let made = 0, skipped = 0;
     for (const it of pendingImport) {
       if (it.id && state.importedIds[it.id]) { skipped++; continue; }
-      const c = computeVat(it.gross, rate, 'inkl');
-      state.receipts.push({
-        id: 'r' + Date.now() + Math.random().toString(36).slice(2, 6), verNr: ver++,
-        date: it.date, type: 'forsaljning', party: it.party, desc: 'Stripe-försäljning',
-        exkl: c.exkl, vat: c.vat, total: c.total, rate, fileData: '',
-        note: 'Importerad från Stripe', createdAt: new Date().toISOString(),
-      });
-      if (incFees && it.fee > 0) {
+      if (it.kind === 'fee') {
+        if (incFees && it.fee > 0) state.receipts.push(feeReceipt(it.date, it.fee));
+      } else {
+        const c = computeVat(it.gross, rate, 'inkl');
         state.receipts.push({
-          id: 'r' + Date.now() + Math.random().toString(36).slice(2, 6), verNr: ver++,
-          date: it.date, type: 'inkop', party: 'Stripe', desc: 'Stripe-avgift',
-          exkl: it.fee, vat: 0, total: it.fee, rate: 0, fileData: '',
-          note: 'Importerad från Stripe (omvänd skattskyldighet – moms ej avdragen här)', createdAt: new Date().toISOString(),
+          id: newId(), verNr: ver++, date: it.date, type: 'forsaljning', party: it.party,
+          desc: 'Stripe-försäljning', exkl: c.exkl, vat: c.vat, total: c.total, rate, fileData: '',
+          note: 'Importerad från Stripe', createdAt: new Date().toISOString(),
         });
+        if (incFees && it.fee > 0) state.receipts.push(feeReceipt(it.date, it.fee));
       }
       if (it.id) state.importedIds[it.id] = true;
       made++;
