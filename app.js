@@ -1,0 +1,517 @@
+/* =========================================================
+   Moms — enkel momskoll. All data lokalt i webbläsaren.
+   ========================================================= */
+'use strict';
+
+const STORE_KEY = 'moms.data.v1';
+const MONTHS = ['januari','februari','mars','april','maj','juni','juli','augusti','september','oktober','november','december'];
+const VAT_RATES = [25, 12, 6, 0];
+
+/* ---------- State ---------- */
+let state = load();
+
+function defaultState() {
+  return {
+    settings: { name: '', org: '', period: 'kvartal' },
+    receipts: [],          // {id, verNr, date, type, party, desc, exkl, vat, total, rate, fileData, note, createdAt}
+    notes: '',
+    checks: {},            // { 'periodKey': [bool x5] }
+    activePeriod: null,    // periodKey string, null = current
+  };
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return defaultState();
+    return Object.assign(defaultState(), JSON.parse(raw));
+  } catch { return defaultState(); }
+}
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+  catch (e) { toast('Kunde inte spara — lagringen kan vara full.'); }
+}
+
+/* ---------- Money & VAT helpers ---------- */
+const kr = (n) => (Math.round(n) || 0).toLocaleString('sv-SE') + ' kr';
+const krSigned = (n) => (n > 0 ? '+' : '') + kr(n);
+
+function computeVat(amount, rate, inclusive) {
+  const r = rate / 100;
+  if (rate === 0) return { exkl: amount, vat: 0, total: amount };
+  if (inclusive === 'inkl') {
+    const exkl = amount / (1 + r);
+    return { exkl, vat: amount - exkl, total: amount };
+  }
+  return { exkl: amount, vat: amount * r, total: amount + amount * r };
+}
+
+/* ---------- Period logic ----------
+   A periodKey identifies a reporting period.
+   kvartal: "2026-Q1"  manad: "2026-03"  helar: "2026"
+*/
+function currentPeriodKey(period, d = new Date()) {
+  const y = d.getFullYear();
+  if (period === 'manad') return `${y}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  if (period === 'helar') return `${y}`;
+  return `${y}-Q${Math.floor(d.getMonth() / 3) + 1}`;
+}
+
+// Returns {start: Date, end: Date} inclusive range for a periodKey
+function periodRange(period, key) {
+  if (period === 'manad') {
+    const [y, m] = key.split('-').map(Number);
+    return { start: new Date(y, m - 1, 1), end: new Date(y, m, 0) };
+  }
+  if (period === 'helar') {
+    const y = Number(key);
+    return { start: new Date(y, 0, 1), end: new Date(y, 11, 31) };
+  }
+  const [ys, q] = key.split('-Q');
+  const y = Number(ys), qi = Number(q);
+  return { start: new Date(y, (qi - 1) * 3, 1), end: new Date(y, qi * 3, 0) };
+}
+
+// Skatteverket-style deadline: 12th of 2nd month after period end (yearly: 26th).
+// Deadlines falling in Jan or Aug shift to the 17th. Always advisory.
+function deadlineFor(period, key) {
+  const { end } = periodRange(period, key);
+  let dueMonth = end.getMonth() + 2; // 2nd month after period end
+  let dueYear = end.getFullYear();
+  while (dueMonth > 11) { dueMonth -= 12; dueYear += 1; }
+  let day = period === 'helar' ? 26 : 12;
+  if (period !== 'helar' && (dueMonth === 0 || dueMonth === 7)) day = 17; // Jan/Aug
+  return new Date(dueYear, dueMonth, day);
+}
+
+function periodLabel(period, key) {
+  if (period === 'manad') {
+    const [y, m] = key.split('-').map(Number);
+    return `${MONTHS[m - 1]} ${y}`;
+  }
+  if (period === 'helar') return `Helår ${key}`;
+  const [y, q] = key.split('-Q');
+  return `Kvartal ${q} ${y}`;
+}
+
+function activeKey() {
+  return state.activePeriod || currentPeriodKey(state.settings.period);
+}
+
+// Build a list of selectable periods: a few back, current, and next.
+function periodChoices() {
+  const period = state.settings.period;
+  const keys = [];
+  const now = new Date();
+  if (period === 'manad') {
+    for (let i = -5; i <= 1; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      keys.push(currentPeriodKey('manad', d));
+    }
+  } else if (period === 'helar') {
+    for (let i = -2; i <= 1; i++) keys.push(String(now.getFullYear() + i));
+  } else {
+    for (let i = -4; i <= 1; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i * 3, 1);
+      keys.push(currentPeriodKey('kvartal', d));
+    }
+  }
+  return [...new Set(keys)];
+}
+
+/* ---------- Receipts for active period ---------- */
+function receiptsInPeriod() {
+  const { start, end } = periodRange(state.settings.period, activeKey());
+  return state.receipts.filter(r => {
+    const d = new Date(r.date + 'T00:00:00');
+    return d >= start && d <= end;
+  }).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/* ---------- VAT declaration totals ---------- */
+function declTotals() {
+  const rs = receiptsInPeriod();
+  const t = { sales: 0, u25: 0, u12: 0, u6: 0, ing: 0 };
+  for (const r of rs) {
+    if (r.type === 'forsaljning') {
+      t.sales += r.exkl;
+      if (r.rate === 25) t.u25 += r.vat;
+      else if (r.rate === 12) t.u12 += r.vat;
+      else if (r.rate === 6) t.u6 += r.vat;
+    } else {
+      t.ing += r.vat;
+    }
+  }
+  t.utg = t.u25 + t.u12 + t.u6;
+  t.toPay = t.utg - t.ing; // ruta 49
+  return t;
+}
+
+/* =========================================================
+   Rendering
+   ========================================================= */
+function renderAll() {
+  renderTopbar();
+  renderOverview();
+  renderReceiptList();
+  renderDeclaration();
+  renderSettingsForm();
+  document.getElementById('notes').value = state.notes || '';
+}
+
+function renderTopbar() {
+  document.getElementById('periodLabel').textContent = periodLabel(state.settings.period, activeKey());
+  document.getElementById('bizNameTop').textContent = state.settings.name || 'Mitt företag';
+  document.getElementById('periodSub').textContent =
+    `Din momsredovisning för ${periodLabel(state.settings.period, activeKey()).toLowerCase()}.`;
+}
+
+function renderOverview() {
+  const t = declTotals();
+  const dl = deadlineFor(state.settings.period, activeKey());
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const days = Math.round((dl - today) / 86400000);
+
+  document.getElementById('deadlineDate').textContent =
+    `${dl.getDate()} ${MONTHS[dl.getMonth()]} ${dl.getFullYear()}`;
+  const cd = document.getElementById('deadlineCountdown');
+  if (days > 1) cd.textContent = `Om ${days} dagar`;
+  else if (days === 1) cd.textContent = 'I morgon!';
+  else if (days === 0) cd.textContent = 'Idag!';
+  else cd.textContent = `${Math.abs(days)} dagar sedan (försenad?)`;
+
+  document.getElementById('heroAmount').textContent = kr(Math.abs(t.toPay));
+  const badge = document.getElementById('heroAmountBadge');
+  if (t.toPay > 0) badge.textContent = 'Att betala';
+  else if (t.toPay < 0) badge.textContent = 'Att få tillbaka';
+  else badge.textContent = 'Noll';
+
+  document.getElementById('sumUtg').textContent = kr(t.utg);
+  document.getElementById('sumIng').textContent = kr(t.ing);
+  document.getElementById('sumCount').textContent = receiptsInPeriod().length;
+
+  renderChecklist();
+}
+
+const CHECK_ITEMS = [
+  'Samla alla kvitton för perioden',
+  'Kontrollera att momsen stämmer på varje kvitto',
+  'Stäm av summorna under Momsdeklaration',
+  'Logga in på Skatteverket och fyll i deklarationen',
+  'Betala momsen (eller invänta återbetalning)',
+];
+function renderChecklist() {
+  const key = activeKey();
+  const checks = state.checks[key] || (state.checks[key] = [false, false, false, false, false]);
+  const ul = document.getElementById('checklist');
+  ul.innerHTML = '';
+  CHECK_ITEMS.forEach((label, i) => {
+    const li = document.createElement('li');
+    li.className = 'check-item' + (checks[i] ? ' done' : '');
+    li.tabIndex = 0;
+    li.setAttribute('role', 'checkbox');
+    li.setAttribute('aria-checked', checks[i] ? 'true' : 'false');
+    li.innerHTML = `<span class="check-box"><svg class="ic"><use href="#i-check"/></svg></span><span class="check-text">${label}</span>`;
+    const toggle = () => { checks[i] = !checks[i]; save(); renderChecklist(); };
+    li.addEventListener('click', toggle);
+    li.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); } });
+    ul.appendChild(li);
+  });
+  const done = checks.filter(Boolean).length;
+  document.getElementById('checkProgress').textContent = `${done} / 5 klart`;
+}
+
+function renderReceiptList() {
+  const rs = receiptsInPeriod().slice().reverse();
+  const list = document.getElementById('receiptList');
+  document.getElementById('receiptCount').textContent = `${rs.length} st`;
+  if (!rs.length) {
+    list.innerHTML = `<div class="empty">Inga kvitton i ${periodLabel(state.settings.period, activeKey()).toLowerCase()} än.<br>Lägg till ditt första ovan.</div>`;
+    return;
+  }
+  list.innerHTML = '';
+  for (const r of rs) {
+    const row = document.createElement('div');
+    row.className = 'receipt-row';
+    const isSale = r.type === 'forsaljning';
+    const thumb = r.fileData
+      ? `<img class="receipt-thumb" src="${r.fileData}" alt="Kvitto" />`
+      : `<span class="receipt-thumb"><svg class="ic"><use href="#i-receipt"/></svg></span>`;
+    row.innerHTML = `
+      ${thumb}
+      <div class="receipt-main">
+        <div class="receipt-title">${esc(r.party)} <span class="receipt-tag ${isSale ? 'tag-in' : 'tag-out'}">${isSale ? 'Försäljning' : 'Inköp'}</span></div>
+        <div class="receipt-meta"><span>${fmtDate(r.date)}</span><span>${esc(r.desc)}</span><span>${r.rate}% moms</span></div>
+      </div>
+      <div class="receipt-amt">
+        <div class="a">${kr(r.total)}</div>
+        <div class="v">moms ${kr(r.vat)}</div>
+      </div>
+      <button class="receipt-del" aria-label="Ta bort kvitto" data-del="${r.id}"><svg class="ic"><use href="#i-trash"/></svg></button>`;
+    row.querySelector('[data-del]').addEventListener('click', () => deleteReceipt(r.id));
+    list.appendChild(row);
+  }
+}
+
+function renderDeclaration() {
+  const t = declTotals();
+  const rows = [
+    ['05', 'Momspliktig försäljning (exkl. moms)', t.sales],
+    ['10', 'Utgående moms 25 %', t.u25],
+    ['11', 'Utgående moms 12 %', t.u12],
+    ['12', 'Utgående moms 6 %', t.u6],
+    ['48', 'Ingående moms att dra av', t.ing],
+  ];
+  const tbody = document.getElementById('declRows');
+  tbody.innerHTML = rows.map(([n, label, val]) =>
+    `<tr><td class="decl-ruta">${n}</td><td>${label}</td><td class="num">${kr(val)}</td></tr>`
+  ).join('') +
+    `<tr class="total"><td class="decl-ruta">49</td><td>Moms att ${t.toPay >= 0 ? 'betala' : 'få tillbaka'}</td><td class="num">${kr(Math.abs(t.toPay))}</td></tr>`;
+
+  const adv = [
+    ['20', 'Inköp av varor från annat EU-land'],
+    ['21', 'Inköp av tjänster från annat EU-land'],
+    ['35', 'Försäljning av varor till annat EU-land'],
+    ['39', 'Försäljning av tjänster till näringsidkare i EU'],
+  ];
+  document.getElementById('declAdvRows').innerHTML = adv.map(([n, label]) =>
+    `<tr><td class="decl-ruta">${n}</td><td>${label}</td><td class="num">0 kr</td></tr>`
+  ).join('');
+}
+
+function renderSettingsForm() {
+  document.getElementById('setName').value = state.settings.name;
+  document.getElementById('setOrg').value = state.settings.org;
+  document.getElementById('setPeriod').value = state.settings.period;
+}
+
+/* =========================================================
+   Actions
+   ========================================================= */
+function deleteReceipt(id) {
+  if (!confirm('Ta bort det här kvittot?')) return;
+  state.receipts = state.receipts.filter(r => r.id !== id);
+  save(); renderAll(); toast('Kvitto borttaget');
+}
+
+function nextVerNr() {
+  const max = state.receipts.reduce((m, r) => Math.max(m, r.verNr || 0), 0);
+  return max + 1;
+}
+
+/* ---------- Image compression to keep localStorage small ---------- */
+function compressImage(file) {
+  return new Promise((resolve) => {
+    if (!file) return resolve('');
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 1100;
+        let { width, height } = img;
+        if (width > max || height > max) {
+          const s = max / Math.max(width, height);
+          width = Math.round(width * s); height = Math.round(height * s);
+        }
+        const c = document.createElement('canvas');
+        c.width = width; c.height = height;
+        c.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(c.toDataURL('image/jpeg', 0.7));
+      };
+      img.onerror = () => resolve('');
+      img.src = reader.result;
+    };
+    reader.onerror = () => resolve('');
+    reader.readAsDataURL(file);
+  });
+}
+
+/* =========================================================
+   Wire up
+   ========================================================= */
+function navTo(view) {
+  document.querySelectorAll('.view').forEach(v => v.hidden = v.id !== 'view-' + view);
+  document.querySelectorAll('[data-view]').forEach(n =>
+    n.classList.toggle('active', n.dataset.view === view));
+  if (location.hash !== '#' + view) history.replaceState(null, '', '#' + view);
+  window.scrollTo(0, 0);
+}
+
+function setupNav() {
+  document.querySelectorAll('[data-view]').forEach(n =>
+    n.addEventListener('click', (e) => { e.preventDefault(); navTo(n.dataset.view); }));
+  document.querySelectorAll('[data-goto]').forEach(b =>
+    b.addEventListener('click', () => navTo(b.dataset.goto)));
+  const start = (location.hash || '#oversikt').slice(1);
+  navTo(['oversikt','kvitton','deklaration','anteckningar','installningar'].includes(start) ? start : 'oversikt');
+}
+
+function setupReceiptForm() {
+  const form = document.getElementById('receiptForm');
+  const dateEl = document.getElementById('rfDate');
+  dateEl.value = new Date().toISOString().slice(0, 10);
+
+  const readInputs = () => ({
+    amount: parseFloat(String(form.amount.value).replace(',', '.')) || 0,
+    rate: Number(form.rate.value),
+    inclusive: form.inclusive.value,
+  });
+  const updatePreview = () => {
+    const { amount, rate, inclusive } = readInputs();
+    const c = computeVat(amount, rate, inclusive);
+    document.getElementById('calcVat').textContent = kr(c.vat);
+    document.getElementById('calcExcl').textContent = kr(c.exkl);
+    document.getElementById('calcTotal').textContent = kr(c.total);
+  };
+  form.addEventListener('input', updatePreview);
+  updatePreview();
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const { amount, rate, inclusive } = readInputs();
+    if (amount <= 0) { toast('Fyll i ett belopp'); return; }
+    const c = computeVat(amount, rate, inclusive);
+    const fileData = await compressImage(form.file.files[0]);
+    state.receipts.push({
+      id: 'r' + Date.now() + Math.random().toString(36).slice(2, 6),
+      verNr: nextVerNr(),
+      date: form.date.value,
+      type: form.type.value,
+      party: form.party.value.trim(),
+      desc: form.desc.value.trim(),
+      exkl: c.exkl, vat: c.vat, total: c.total, rate,
+      fileData,
+      note: form.note.value.trim(),
+      createdAt: new Date().toISOString(),
+    });
+    save();
+    form.reset();
+    dateEl.value = new Date().toISOString().slice(0, 10);
+    updatePreview();
+    renderAll();
+    toast('Kvitto sparat ✓');
+  });
+  form.addEventListener('reset', () => setTimeout(updatePreview, 0));
+}
+
+function setupSettings() {
+  document.getElementById('settingsForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    state.settings.name = document.getElementById('setName').value.trim();
+    state.settings.org = document.getElementById('setOrg').value.trim();
+    const newPeriod = document.getElementById('setPeriod').value;
+    if (newPeriod !== state.settings.period) { state.settings.period = newPeriod; state.activePeriod = null; }
+    save(); renderAll(); toast('Sparat ✓'); navTo('oversikt');
+  });
+
+  document.getElementById('backupBtn').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `moms-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+  });
+  document.getElementById('restoreInput').addEventListener('change', (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        state = Object.assign(defaultState(), JSON.parse(reader.result));
+        save(); renderAll(); toast('Återställt ✓'); navTo('oversikt');
+      } catch { toast('Kunde inte läsa filen'); }
+    };
+    reader.readAsText(file);
+  });
+  document.getElementById('wipeBtn').addEventListener('click', () => {
+    if (!confirm('Radera ALLT? Detta går inte att ångra.')) return;
+    state = defaultState(); save(); renderAll(); toast('Allt raderat'); navTo('oversikt');
+  });
+}
+
+function setupNotes() {
+  const ta = document.getElementById('notes');
+  const saved = document.getElementById('notesSaved');
+  let timer;
+  ta.addEventListener('input', () => {
+    state.notes = ta.value;
+    clearTimeout(timer);
+    timer = setTimeout(() => { save(); saved.classList.add('show'); setTimeout(() => saved.classList.remove('show'), 1200); }, 400);
+  });
+}
+
+function setupPeriodSheet() {
+  const sheet = document.getElementById('periodSheet');
+  const open = () => {
+    const opts = document.getElementById('periodOptions');
+    const cur = activeKey();
+    opts.innerHTML = '';
+    periodChoices().reverse().forEach(key => {
+      const btn = document.createElement('button');
+      btn.className = 'period-opt' + (key === cur ? ' active' : '');
+      const dl = deadlineFor(state.settings.period, key);
+      btn.innerHTML = `<span>${periodLabel(state.settings.period, key)}</span><span class="muted small">deadline ${dl.getDate()}/${dl.getMonth()+1}</span>`;
+      btn.addEventListener('click', () => {
+        state.activePeriod = (key === currentPeriodKey(state.settings.period)) ? null : key;
+        save(); renderAll(); closeSheet();
+      });
+      opts.appendChild(btn);
+    });
+    sheet.hidden = false;
+  };
+  const closeSheet = () => { sheet.hidden = true; };
+  document.getElementById('periodPill').addEventListener('click', open);
+  sheet.querySelectorAll('[data-close-sheet]').forEach(el => el.addEventListener('click', closeSheet));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
+}
+
+function setupHints() {
+  document.querySelectorAll('.hint').forEach(h =>
+    h.addEventListener('click', () => toast(h.dataset.hint, 3500)));
+}
+
+function setupExport() {
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const rs = receiptsInPeriod();
+    const header = 'Vernr;Datum;Typ;Motpart;Beskrivning;Exkl moms;Momssats;Moms;Totalt';
+    const lines = rs.map(r => [
+      r.verNr, r.date, r.type, r.party, r.desc,
+      r.exkl.toFixed(2), r.rate + '%', r.vat.toFixed(2), r.total.toFixed(2)
+    ].map(csvCell).join(';'));
+    const csv = '﻿' + [header, ...lines].join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `moms-underlag-${activeKey()}.csv`;
+    a.click();
+    toast('Underlag exporterat ✓');
+  });
+}
+
+/* ---------- Small utils ---------- */
+function esc(s) { return String(s || '').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
+function csvCell(s) { s = String(s); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+function fmtDate(iso) { const d = new Date(iso + 'T00:00:00'); return `${d.getDate()} ${MONTHS[d.getMonth()].slice(0,3)}`; }
+let toastTimer;
+function toast(msg, ms = 2200) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.hidden = false;
+  requestAnimationFrame(() => t.classList.add('show'));
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.hidden = true, 300); }, ms);
+}
+
+/* ---------- Boot ---------- */
+function boot() {
+  setupNav();
+  setupReceiptForm();
+  setupSettings();
+  setupNotes();
+  setupPeriodSheet();
+  setupHints();
+  setupExport();
+  renderAll();
+  // First run: nudge to settings if nothing configured.
+  if (!state.settings.name && !state.receipts.length) {
+    toast('Välkommen! Ställ in din period under Inställningar ⚙', 3500);
+  }
+}
+document.addEventListener('DOMContentLoaded', boot);

@@ -2,318 +2,330 @@
 <html lang="sv">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Co — designa, animera och publicera webbplatser i världsklass utan kod. Inspirerad av det bästa inom modern webbdesign." />
-  <title>Co — Bygg webben utan gränser</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#6d5cff" />
+  <meta name="description" content="Moms — ett enkelt och tydligt personligt verktyg för att hålla koll på din momsredovisning, dina kvitton och dina deadlines." />
+  <title>Moms · Enkel momskoll</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <!-- Animated gradient background -->
-  <div class="bg-mesh" aria-hidden="true">
-    <div class="blob blob-1"></div>
-    <div class="blob blob-2"></div>
-    <div class="blob blob-3"></div>
+  <!-- SVG icon sprite -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-note" viewBox="0 0 24 24"><path d="M5 4h14v16H5zM9 9h6M9 13h6M9 17h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </svg>
+
+  <div class="app">
+    <!-- Sidebar (desktop) -->
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark"></span>
+        <span class="brand-name">Moms</span>
+      </div>
+      <nav class="side-nav" aria-label="Huvudmeny">
+        <a href="#oversikt" class="nav-item" data-view="oversikt"><svg class="ic"><use href="#i-home"/></svg><span>Översikt</span></a>
+        <a href="#kvitton" class="nav-item" data-view="kvitton"><svg class="ic"><use href="#i-receipt"/></svg><span>Kvitton</span></a>
+        <a href="#deklaration" class="nav-item" data-view="deklaration"><svg class="ic"><use href="#i-doc"/></svg><span>Momsdeklaration</span></a>
+        <a href="#anteckningar" class="nav-item" data-view="anteckningar"><svg class="ic"><use href="#i-note"/></svg><span>Anteckningar</span></a>
+        <a href="#installningar" class="nav-item" data-view="installningar"><svg class="ic"><use href="#i-gear"/></svg><span>Inställningar</span></a>
+      </nav>
+      <div class="side-foot">
+        <p>Allt sparas <strong>lokalt på din enhet</strong>. Inget skickas någonstans.</p>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="period-pill" id="periodPill" aria-haspopup="true">
+            <svg class="ic"><use href="#i-clock"/></svg>
+            <span id="periodLabel">Period</span>
+            <span class="caret">▾</span>
+          </button>
+        </div>
+        <div class="topbar-right">
+          <span class="biz-name" id="bizNameTop">Mitt företag</span>
+        </div>
+      </header>
+
+      <main class="content">
+        <!-- ===================== ÖVERSIKT ===================== -->
+        <section class="view" id="view-oversikt">
+          <div class="view-head">
+            <h1>Översikt</h1>
+            <p class="muted" id="periodSub">Din momsredovisning för perioden.</p>
+          </div>
+
+          <!-- Deadline hero -->
+          <div class="hero-card">
+            <div class="hero-grad" aria-hidden="true"></div>
+            <div class="hero-inner">
+              <span class="hero-eyebrow">Nästa deadline</span>
+              <div class="hero-date" id="deadlineDate">—</div>
+              <div class="hero-count" id="deadlineCountdown">Lägg in din period i Inställningar</div>
+              <p class="hero-note">Kontrollera alltid exakt datum hos Skatteverket.</p>
+            </div>
+            <div class="hero-amount">
+              <span class="muted small">Moms att betala / få tillbaka</span>
+              <div class="hero-amount-val" id="heroAmount">0 kr</div>
+              <span class="badge-pay" id="heroAmountBadge">—</span>
+            </div>
+          </div>
+
+          <!-- Summary tiles -->
+          <div class="tiles">
+            <div class="tile">
+              <span class="tile-label">Utgående moms <button class="hint" data-hint="Moms du tagit ut på det du sålt (din försäljning).">?</button></span>
+              <div class="tile-val" id="sumUtg">0 kr</div>
+            </div>
+            <div class="tile">
+              <span class="tile-label">Ingående moms <button class="hint" data-hint="Moms du betalat på det du köpt och får dra av.">?</button></span>
+              <div class="tile-val" id="sumIng">0 kr</div>
+            </div>
+            <div class="tile">
+              <span class="tile-label">Kvitton i perioden</span>
+              <div class="tile-val" id="sumCount">0</div>
+            </div>
+          </div>
+
+          <!-- Checklist -->
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Att göra innan deadline</h2>
+              <span class="muted small" id="checkProgress">0 / 5 klart</span>
+            </div>
+            <ul class="checklist" id="checklist"></ul>
+          </div>
+
+          <button class="fab-inline btn-primary" data-goto="kvitton">
+            <svg class="ic"><use href="#i-plus"/></svg> Lägg till kvitto
+          </button>
+        </section>
+
+        <!-- ===================== KVITTON ===================== -->
+        <section class="view" id="view-kvitton" hidden>
+          <div class="view-head">
+            <h1>Kvitton</h1>
+            <p class="muted">Lägg in allt du köpt och sålt. Momsen räknas ut åt dig.</p>
+          </div>
+
+          <form class="panel form-card" id="receiptForm">
+            <h2 class="form-title">Nytt kvitto</h2>
+
+            <div class="seg" role="radiogroup" aria-label="Typ av händelse">
+              <label class="seg-opt">
+                <input type="radio" name="type" value="inkop" checked />
+                <span>Utgift / Inköp</span>
+              </label>
+              <label class="seg-opt">
+                <input type="radio" name="type" value="forsaljning" />
+                <span>Inkomst / Försäljning</span>
+              </label>
+            </div>
+
+            <div class="grid-2">
+              <div class="field">
+                <label for="rfDate">Datum</label>
+                <input type="date" id="rfDate" name="date" required />
+              </div>
+              <div class="field">
+                <label for="rfParty">Motpart <span class="muted small">(vem)</span></label>
+                <input type="text" id="rfParty" name="party" placeholder="t.ex. Bauhaus" required autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="rfDesc">Vad avser det?</label>
+              <input type="text" id="rfDesc" name="desc" placeholder="t.ex. Material till jobb" required autocomplete="off" />
+            </div>
+
+            <div class="grid-3">
+              <div class="field">
+                <label for="rfAmount">Belopp</label>
+                <div class="input-money">
+                  <input type="number" id="rfAmount" name="amount" inputmode="decimal" step="0.01" min="0" placeholder="0,00" required />
+                  <span>kr</span>
+                </div>
+              </div>
+              <div class="field">
+                <label for="rfInclusive">Beloppet är</label>
+                <select id="rfInclusive" name="inclusive">
+                  <option value="inkl" selected>Inkl. moms</option>
+                  <option value="exkl">Exkl. moms</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="rfRate">Momssats</label>
+                <select id="rfRate" name="rate">
+                  <option value="25" selected>25 %</option>
+                  <option value="12">12 %</option>
+                  <option value="6">6 %</option>
+                  <option value="0">0 % / momsfritt</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="calc-preview" id="calcPreview" aria-live="polite">
+              <span>Moms: <strong id="calcVat">0 kr</strong></span>
+              <span>Exkl. moms: <strong id="calcExcl">0 kr</strong></span>
+              <span>Totalt: <strong id="calcTotal">0 kr</strong></span>
+            </div>
+
+            <div class="grid-2">
+              <div class="field">
+                <label for="rfFile">Bild på kvitto <span class="muted small">(valfritt)</span></label>
+                <input type="file" id="rfFile" name="file" accept="image/*" capture="environment" />
+              </div>
+              <div class="field">
+                <label for="rfNote">Fri text <span class="muted small">(valfritt)</span></label>
+                <input type="text" id="rfNote" name="note" placeholder="Egen anteckning" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn-primary"><svg class="ic"><use href="#i-check"/></svg> Spara kvitto</button>
+              <button type="reset" class="btn-ghost">Rensa</button>
+            </div>
+          </form>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Sparade kvitton</h2>
+              <span class="muted small" id="receiptCount">0 st</span>
+            </div>
+            <div id="receiptList" class="receipt-list"></div>
+          </div>
+        </section>
+
+        <!-- ===================== DEKLARATION ===================== -->
+        <section class="view" id="view-deklaration" hidden>
+          <div class="view-head">
+            <h1>Momsdeklaration</h1>
+            <p class="muted">Summorna att föra in i Skatteverkets momsdeklaration för perioden.</p>
+          </div>
+
+          <div class="panel">
+            <table class="decl-table">
+              <thead><tr><th>Ruta</th><th>Avser</th><th class="num">Belopp</th></tr></thead>
+              <tbody id="declRows"></tbody>
+            </table>
+          </div>
+
+          <details class="panel adv">
+            <summary>Visa fler rutor (EU-handel m.m.)</summary>
+            <table class="decl-table">
+              <tbody id="declAdvRows"></tbody>
+            </table>
+            <p class="muted small">Dessa fylls bara i om du handlar med utlandet. Lämna tomma annars.</p>
+          </details>
+
+          <div class="callout">
+            <strong>Så gör du:</strong> Logga in på <span class="nowrap">skatteverket.se</span> → Moms → Momsdeklaration,
+            och skriv in beloppen ovan i rutorna med samma nummer. Stäm av mot dina kvitton först.
+          </div>
+
+          <button class="btn-ghost" id="exportBtn"><svg class="ic"><use href="#i-doc"/></svg> Exportera underlag (.csv)</button>
+        </section>
+
+        <!-- ===================== ANTECKNINGAR ===================== -->
+        <section class="view" id="view-anteckningar" hidden>
+          <div class="view-head">
+            <h1>Anteckningar</h1>
+            <p class="muted">Fri text — påminnelser, frågor till revisorn, vad som helst. Sparas automatiskt.</p>
+          </div>
+          <div class="panel">
+            <textarea id="notes" class="notes-area" placeholder="Skriv här…"></textarea>
+            <p class="muted small" id="notesSaved">Sparat</p>
+          </div>
+        </section>
+
+        <!-- ===================== INSTÄLLNINGAR ===================== -->
+        <section class="view" id="view-installningar" hidden>
+          <div class="view-head">
+            <h1>Inställningar</h1>
+            <p class="muted">Fyll i en gång så anpassas allt efter dig.</p>
+          </div>
+
+          <form class="panel form-card" id="settingsForm">
+            <div class="grid-2">
+              <div class="field">
+                <label for="setName">Företagsnamn / ditt namn</label>
+                <input type="text" id="setName" placeholder="t.ex. Anna Andersson" autocomplete="organization" />
+              </div>
+              <div class="field">
+                <label for="setOrg">Organisationsnummer / personnummer</label>
+                <input type="text" id="setOrg" placeholder="556xxx-xxxx" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="setPeriod">Hur ofta redovisar du moms?</label>
+              <select id="setPeriod">
+                <option value="kvartal">Varje kvartal (vanligast för småföretag)</option>
+                <option value="manad">Varje månad</option>
+                <option value="helar">En gång per år (helår)</option>
+              </select>
+              <p class="field-help">Vet du inte? Står på ditt registreringsbevis från Skatteverket. Kvartal är vanligast.</p>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn-primary"><svg class="ic"><use href="#i-check"/></svg> Spara</button>
+            </div>
+          </form>
+
+          <div class="panel danger-zone">
+            <h2>Hantera data</h2>
+            <p class="muted small">All din data ligger lokalt i den här webbläsaren. Ta en säkerhetskopia ibland.</p>
+            <div class="form-actions">
+              <button class="btn-ghost" id="backupBtn">Ladda ner säkerhetskopia</button>
+              <label class="btn-ghost file-btn">Återställ från fil<input type="file" id="restoreInput" accept="application/json" hidden /></label>
+              <button class="btn-danger" id="wipeBtn"><svg class="ic"><use href="#i-trash"/></svg> Radera allt</button>
+            </div>
+          </div>
+
+          <div class="disclaimer">
+            <strong>Viktigt:</strong> Det här är ett personligt hjälpmedel för eget bruk, inte officiell bokföring och
+            inte kopplat till Skatteverket. Det ersätter inte bokföringsprogram eller rådgivning från revisor.
+            Du ansvarar själv för att uppgifterna du lämnar till Skatteverket är korrekta och i tid.
+          </div>
+        </section>
+      </main>
+
+      <!-- Bottom nav (mobile) -->
+      <nav class="bottom-nav" aria-label="Huvudmeny mobil">
+        <a href="#oversikt" class="bn-item" data-view="oversikt"><svg class="ic"><use href="#i-home"/></svg><span>Översikt</span></a>
+        <a href="#kvitton" class="bn-item" data-view="kvitton"><svg class="ic"><use href="#i-receipt"/></svg><span>Kvitton</span></a>
+        <a href="#deklaration" class="bn-item" data-view="deklaration"><svg class="ic"><use href="#i-doc"/></svg><span>Moms</span></a>
+        <a href="#anteckningar" class="bn-item" data-view="anteckningar"><svg class="ic"><use href="#i-note"/></svg><span>Anteckn.</span></a>
+        <a href="#installningar" class="bn-item" data-view="installningar"><svg class="ic"><use href="#i-gear"/></svg><span>Mer</span></a>
+      </nav>
+    </div>
   </div>
 
-  <!-- Navigation -->
-  <header class="nav" id="nav">
-    <div class="nav-inner">
-      <a href="#" class="logo">
-        <span class="logo-mark"></span>
-        Co
-      </a>
-      <nav class="nav-links">
-        <a href="#features">Funktioner</a>
-        <a href="#showcase">Showcase</a>
-        <a href="#pricing">Priser</a>
-        <a href="#faq">Frågor</a>
-      </nav>
-      <div class="nav-actions">
-        <a href="#" class="btn btn-ghost">Logga in</a>
-        <a href="#" class="btn btn-primary">Kom igång</a>
-      </div>
-      <button class="nav-toggle" aria-label="Meny" id="navToggle">
-        <span></span><span></span><span></span>
-      </button>
+  <!-- Period picker sheet -->
+  <div class="sheet" id="periodSheet" hidden>
+    <div class="sheet-backdrop" data-close-sheet></div>
+    <div class="sheet-body" role="dialog" aria-label="Välj period">
+      <h3>Välj period</h3>
+      <div id="periodOptions" class="period-options"></div>
+      <button class="btn-ghost btn-block" data-close-sheet>Stäng</button>
     </div>
-  </header>
+  </div>
 
-  <main>
-    <!-- Hero -->
-    <section class="hero">
-      <div class="container">
-        <div class="badge reveal" data-reveal>
-          <span class="badge-dot"></span>
-          Nytt · AI-driven layoutmotor
-        </div>
-        <h1 class="hero-title reveal" data-reveal>
-          Designa webben<br />
-          <span class="gradient-text">utan gränser.</span>
-        </h1>
-        <p class="hero-sub reveal" data-reveal>
-          Co förenar design, animation och publicering i ett enda verktyg.
-          Bygg pixelperfekta, blixtsnabba webbplatser — direkt i webbläsaren, helt utan kod.
-        </p>
-        <div class="hero-cta reveal" data-reveal>
-          <a href="#" class="btn btn-primary btn-lg">Börja bygga gratis</a>
-          <a href="#showcase" class="btn btn-ghost btn-lg">Se exempel →</a>
-        </div>
-        <div class="hero-meta reveal" data-reveal>
-          <div class="avatars">
-            <span class="avatar"></span>
-            <span class="avatar"></span>
-            <span class="avatar"></span>
-            <span class="avatar"></span>
-          </div>
-          Älskad av 40&nbsp;000+ designers och team
-        </div>
-      </div>
+  <!-- Toast -->
+  <div class="toast" id="toast" hidden></div>
 
-      <!-- Floating preview card -->
-      <div class="hero-visual reveal" data-reveal>
-        <div class="window" id="tiltCard">
-          <div class="window-bar">
-            <span class="dot red"></span>
-            <span class="dot yellow"></span>
-            <span class="dot green"></span>
-            <span class="window-url">co.studio/projekt</span>
-          </div>
-          <div class="window-body">
-            <div class="canvas">
-              <div class="canvas-block b1"></div>
-              <div class="canvas-block b2"></div>
-              <div class="canvas-block b3"></div>
-              <div class="canvas-block b4"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Logo strip -->
-    <section class="logos reveal" data-reveal>
-      <div class="container">
-        <p class="logos-label">Driver team på</p>
-        <div class="logos-row">
-          <span>Northwind</span>
-          <span>Lumen</span>
-          <span>Vertex</span>
-          <span>Aurora</span>
-          <span>Helios</span>
-          <span>Monarch</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- Features -->
-    <section class="section" id="features">
-      <div class="container">
-        <div class="section-head reveal" data-reveal>
-          <span class="eyebrow">Funktioner</span>
-          <h2>Allt du behöver för att skeppa snabbare.</h2>
-          <p>Ett verktyg som ersätter tre. Från första skiss till publicerad sida.</p>
-        </div>
-        <div class="grid">
-          <article class="card reveal" data-reveal>
-            <div class="card-icon">✦</div>
-            <h3>Visuell canvas</h3>
-            <p>Dra, släpp och justera med pixelprecision. Det du ser är exakt det som publiceras.</p>
-          </article>
-          <article class="card reveal" data-reveal>
-            <div class="card-icon">⚡</div>
-            <h3>Animeringar på riktigt</h3>
-            <p>Scroll-effekter, övergångar och mikrointeraktioner — utan en enda rad JavaScript.</p>
-          </article>
-          <article class="card reveal" data-reveal>
-            <div class="card-icon">◈</div>
-            <h3>Responsivt direkt</h3>
-            <p>Designa en gång. Co anpassar automatiskt layouten för mobil, platta och desktop.</p>
-          </article>
-          <article class="card reveal" data-reveal>
-            <div class="card-icon">⚙</div>
-            <h3>CMS &amp; data</h3>
-            <p>Koppla innehåll, samlingar och formulär. Dynamiskt utan en backend att underhålla.</p>
-          </article>
-          <article class="card reveal" data-reveal>
-            <div class="card-icon">⬢</div>
-            <h3>Blixtsnabb hosting</h3>
-            <p>Global CDN, automatisk optimering och 99,99&nbsp;% drifttid. Publicera med ett klick.</p>
-          </article>
-          <article class="card reveal" data-reveal>
-            <div class="card-icon">✶</div>
-            <h3>Realtidssamarbete</h3>
-            <p>Bjud in teamet och designa tillsammans live — kommentarer, roller och versioner.</p>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <!-- Showcase / split -->
-    <section class="section showcase" id="showcase">
-      <div class="container split">
-        <div class="split-text reveal" data-reveal>
-          <span class="eyebrow">Showcase</span>
-          <h2>Från idé till live på minuter.</h2>
-          <p>
-            Starta från en tom canvas eller en av hundratals mallar. Co tar hand om
-            koden, prestandan och tillgängligheten så att du kan fokusera på idén.
-          </p>
-          <ul class="check-list">
-            <li>Semantisk, ren HTML under huven</li>
-            <li>SEO och Open Graph automatiskt</li>
-            <li>Exportera koden när du vill</li>
-          </ul>
-          <a href="#" class="btn btn-primary">Utforska mallar</a>
-        </div>
-        <div class="split-visual reveal" data-reveal>
-          <div class="stat-grid">
-            <div class="stat">
-              <span class="stat-num" data-count="98">0</span>
-              <span class="stat-label">Performance score</span>
-            </div>
-            <div class="stat">
-              <span class="stat-num" data-count="120" data-suffix="ms">0</span>
-              <span class="stat-label">Genomsnittlig laddtid</span>
-            </div>
-            <div class="stat">
-              <span class="stat-num" data-count="40" data-suffix="k+">0</span>
-              <span class="stat-label">Aktiva byggare</span>
-            </div>
-            <div class="stat">
-              <span class="stat-num" data-count="99" data-suffix="%">0</span>
-              <span class="stat-label">Drifttid</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Pricing -->
-    <section class="section" id="pricing">
-      <div class="container">
-        <div class="section-head reveal" data-reveal>
-          <span class="eyebrow">Priser</span>
-          <h2>Enkelt. Transparent. Skalbart.</h2>
-          <p>Börja gratis. Uppgradera när du växer.</p>
-        </div>
-        <div class="pricing-grid">
-          <article class="price-card reveal" data-reveal>
-            <h3>Start</h3>
-            <div class="price">0&nbsp;kr<span>/mån</span></div>
-            <p class="price-desc">För personliga projekt och experiment.</p>
-            <ul>
-              <li>1 projekt</li>
-              <li>Co-subdomän</li>
-              <li>Community-support</li>
-            </ul>
-            <a href="#" class="btn btn-ghost btn-block">Välj Start</a>
-          </article>
-          <article class="price-card featured reveal" data-reveal>
-            <div class="price-tag">Populärast</div>
-            <h3>Pro</h3>
-            <div class="price">149&nbsp;kr<span>/mån</span></div>
-            <p class="price-desc">För frilansare och små team som bygger på riktigt.</p>
-            <ul>
-              <li>Obegränsade projekt</li>
-              <li>Egen domän</li>
-              <li>CMS &amp; formulär</li>
-              <li>Avancerade animeringar</li>
-            </ul>
-            <a href="#" class="btn btn-primary btn-block">Välj Pro</a>
-          </article>
-          <article class="price-card reveal" data-reveal>
-            <h3>Team</h3>
-            <div class="price">399&nbsp;kr<span>/mån</span></div>
-            <p class="price-desc">För organisationer med flera samarbetspartners.</p>
-            <ul>
-              <li>Allt i Pro</li>
-              <li>Realtidssamarbete</li>
-              <li>Roller &amp; behörigheter</li>
-              <li>Prioriterad support</li>
-            </ul>
-            <a href="#" class="btn btn-ghost btn-block">Välj Team</a>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <!-- FAQ -->
-    <section class="section" id="faq">
-      <div class="container narrow">
-        <div class="section-head reveal" data-reveal>
-          <span class="eyebrow">Frågor &amp; svar</span>
-          <h2>Vanliga frågor</h2>
-        </div>
-        <div class="faq-list">
-          <details class="faq-item reveal" data-reveal>
-            <summary>Behöver jag kunna koda?</summary>
-            <p>Nej. Co är helt visuellt. Vill du ändå se eller exportera koden går det utmärkt.</p>
-          </details>
-          <details class="faq-item reveal" data-reveal>
-            <summary>Kan jag använda min egen domän?</summary>
-            <p>Ja, från Pro-planen och uppåt kopplar du valfri domän med automatiskt SSL.</p>
-          </details>
-          <details class="faq-item reveal" data-reveal>
-            <summary>Hur snabba är sidorna?</summary>
-            <p>Allt serveras via globalt CDN med automatisk bild- och kodoptimering för toppresultat.</p>
-          </details>
-          <details class="faq-item reveal" data-reveal>
-            <summary>Kan teamet jobba samtidigt?</summary>
-            <p>Absolut. Realtidssamarbete med kommentarer och versionshistorik ingår i Team-planen.</p>
-          </details>
-        </div>
-      </div>
-    </section>
-
-    <!-- CTA -->
-    <section class="cta-section">
-      <div class="container">
-        <div class="cta-box reveal" data-reveal>
-          <h2>Redo att bygga något fantastiskt?</h2>
-          <p>Skapa ditt första projekt på under en minut. Inget kreditkort krävs.</p>
-          <a href="#" class="btn btn-primary btn-lg">Kom igång gratis</a>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <!-- Footer -->
-  <footer class="footer">
-    <div class="container footer-inner">
-      <div class="footer-brand">
-        <a href="#" class="logo"><span class="logo-mark"></span>Co</a>
-        <p>Bygg webben utan gränser.</p>
-      </div>
-      <div class="footer-cols">
-        <div class="footer-col">
-          <h4>Produkt</h4>
-          <a href="#features">Funktioner</a>
-          <a href="#pricing">Priser</a>
-          <a href="#showcase">Showcase</a>
-        </div>
-        <div class="footer-col">
-          <h4>Företag</h4>
-          <a href="#">Om oss</a>
-          <a href="#">Blogg</a>
-          <a href="#">Karriär</a>
-        </div>
-        <div class="footer-col">
-          <h4>Resurser</h4>
-          <a href="#">Hjälp</a>
-          <a href="#">Community</a>
-          <a href="#">Status</a>
-        </div>
-      </div>
-    </div>
-    <div class="container footer-bottom">
-      <span>© 2026 Co. Alla rättigheter förbehållna.</span>
-      <span>Byggd med ❤️ och en gradient.</span>
-    </div>
-  </footer>
-
-  <script src="script.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
