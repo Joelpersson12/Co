@@ -14,6 +14,7 @@ function defaultState() {
   return {
     settings: { name: '', org: '', period: 'kvartal' },
     receipts: [],          // {id, verNr, date, type, party, desc, exkl, vat, total, rate, fileData, note, createdAt}
+    calculations: [],      // {id, ts, label, type, amount, inclusive, rate, exkl, vat, total, bookedId}
     notes: '',
     checks: {},            // { 'periodKey': [bool x5] }
     activePeriod: null,    // periodKey string, null = current
@@ -153,6 +154,7 @@ function renderAll() {
   renderTopbar();
   renderOverview();
   renderReceiptList();
+  renderCalcList();
   renderDeclaration();
   renderSettingsForm();
   document.getElementById('notes').value = state.notes || '';
@@ -252,6 +254,59 @@ function renderReceiptList() {
   }
 }
 
+function renderCalcList() {
+  const list = document.getElementById('calcList');
+  if (!list) return;
+  const calcs = state.calculations.slice().reverse();
+  document.getElementById('calcCount').textContent = `${calcs.length} st`;
+  if (!calcs.length) {
+    list.innerHTML = `<div class="empty">Inga sparade uträkningar än.<br>Räkna ut något ovan och tryck Spara.</div>`;
+    return;
+  }
+  list.innerHTML = '';
+  for (const c of calcs) {
+    const isSale = c.type === 'forsaljning';
+    const row = document.createElement('div');
+    row.className = 'calc-row';
+    const booked = !!c.bookedId;
+    row.innerHTML = `
+      <div class="calc-row-main">
+        <div class="calc-row-title">${esc(c.label)} <span class="receipt-tag ${isSale ? 'tag-in' : 'tag-out'}">${isSale ? 'Försäljning' : 'Inköp'}</span></div>
+        <div class="calc-row-meta">${esc(fmtDateTime(c.ts))} · ${c.rate}% moms · exkl ${kr(c.exkl)}</div>
+      </div>
+      <div class="calc-row-amt">
+        <div class="a">${kr(c.total)}</div>
+        <div class="v">moms ${kr(c.vat)}</div>
+      </div>
+      <button class="calc-book" ${booked ? 'disabled' : ''} data-book="${c.id}">${booked ? 'Bokfört ✓' : 'Gör till kvitto'}</button>
+      <button class="receipt-del" aria-label="Ta bort uträkning" data-delcalc="${c.id}"><svg class="ic"><use href="#i-trash"/></svg></button>`;
+    row.querySelector('[data-delcalc]').addEventListener('click', () => deleteCalc(c.id));
+    if (!booked) row.querySelector('[data-book]').addEventListener('click', () => bookCalc(c.id));
+    list.appendChild(row);
+  }
+}
+
+function deleteCalc(id) {
+  state.calculations = state.calculations.filter(c => c.id !== id);
+  save(); renderCalcList(); toast('Uträkning borttagen');
+}
+
+// Turn a saved calculation into a real receipt so it counts in the declaration.
+function bookCalc(id) {
+  const c = state.calculations.find(x => x.id === id);
+  if (!c || c.bookedId) return;
+  const rid = 'r' + Date.now() + Math.random().toString(36).slice(2, 6);
+  state.receipts.push({
+    id: rid, verNr: nextVerNr(),
+    date: new Date(c.ts).toISOString().slice(0, 10),
+    type: c.type, party: c.label || 'Kalkylator', desc: c.label || 'Uträkning',
+    exkl: c.exkl, vat: c.vat, total: c.total, rate: c.rate,
+    fileData: '', note: 'Från momskalkylatorn', createdAt: new Date().toISOString(),
+  });
+  c.bookedId = rid;
+  save(); renderAll(); toast('Tillagt som kvitto ✓');
+}
+
 function renderDeclaration() {
   const t = declTotals();
   const rows = [
@@ -342,7 +397,7 @@ function setupNav() {
   document.querySelectorAll('[data-goto]').forEach(b =>
     b.addEventListener('click', () => navTo(b.dataset.goto)));
   const start = (location.hash || '#oversikt').slice(1);
-  navTo(['oversikt','kvitton','deklaration','anteckningar','installningar'].includes(start) ? start : 'oversikt');
+  navTo(['oversikt','kvitton','kalkylator','deklaration','anteckningar','installningar'].includes(start) ? start : 'oversikt');
 }
 
 function setupReceiptForm() {
@@ -391,6 +446,49 @@ function setupReceiptForm() {
     toast('Kvitto sparat ✓');
   });
   form.addEventListener('reset', () => setTimeout(updatePreview, 0));
+}
+
+function setupCalculator() {
+  const amount = document.getElementById('cAmount');
+  const incl = document.getElementById('cIncl');
+  const rate = document.getElementById('cRate');
+  const what = document.getElementById('cWhat');
+  const view = document.getElementById('view-kalkylator');
+
+  const read = () => ({
+    amount: parseFloat(String(amount.value).replace(',', '.')) || 0,
+    inclusive: incl.value,
+    rate: Number(rate.value),
+    type: view.querySelector('input[name="ctype"]:checked').value,
+    label: what.value.trim() || 'Uträkning',
+  });
+  const update = () => {
+    const v = read();
+    const c = computeVat(v.amount, v.rate, v.inclusive);
+    document.getElementById('cExcl').textContent = kr(c.exkl);
+    document.getElementById('cVat').textContent = kr(c.vat);
+    document.getElementById('cTotal').textContent = kr(c.total);
+    document.getElementById('cRateLbl').textContent = `(${v.rate} %)`;
+  };
+  view.addEventListener('input', update);
+  view.addEventListener('change', update);
+  update();
+
+  document.getElementById('calcSave').addEventListener('click', () => {
+    const v = read();
+    if (v.amount <= 0) { toast('Fyll i ett belopp'); amount.focus(); return; }
+    const c = computeVat(v.amount, v.rate, v.inclusive);
+    state.calculations.push({
+      id: 'c' + Date.now() + Math.random().toString(36).slice(2, 6),
+      ts: Date.now(),
+      label: v.label, type: v.type, amount: v.amount, inclusive: v.inclusive, rate: v.rate,
+      exkl: c.exkl, vat: c.vat, total: c.total, bookedId: null,
+    });
+    save();
+    amount.value = ''; what.value = '';
+    update(); renderCalcList();
+    toast('Uträkning sparad ✓');
+  });
 }
 
 function setupSettings() {
@@ -490,6 +588,7 @@ function setupExport() {
 function esc(s) { return String(s || '').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
 function csvCell(s) { s = String(s); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
 function fmtDate(iso) { const d = new Date(iso + 'T00:00:00'); return `${d.getDate()} ${MONTHS[d.getMonth()].slice(0,3)}`; }
+function fmtDateTime(ts) { const d = new Date(ts); return `${d.getDate()} ${MONTHS[d.getMonth()].slice(0,3)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
 let toastTimer;
 function toast(msg, ms = 2200) {
   const t = document.getElementById('toast');
@@ -503,6 +602,7 @@ function toast(msg, ms = 2200) {
 function boot() {
   setupNav();
   setupReceiptForm();
+  setupCalculator();
   setupSettings();
   setupNotes();
   setupPeriodSheet();

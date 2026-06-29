@@ -23,6 +23,7 @@
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
     <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-calc" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="8" y="6" width="8" height="3" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M9 13h0M12.5 13h0M16 13h0M9 16h0M12.5 16h0M16 16h0" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
   </svg>
 
   <div class="app">
@@ -35,6 +36,7 @@
       <nav class="side-nav" aria-label="Huvudmeny">
         <a href="#oversikt" class="nav-item" data-view="oversikt"><svg class="ic"><use href="#i-home"/></svg><span>Översikt</span></a>
         <a href="#kvitton" class="nav-item" data-view="kvitton"><svg class="ic"><use href="#i-receipt"/></svg><span>Kvitton</span></a>
+        <a href="#kalkylator" class="nav-item" data-view="kalkylator"><svg class="ic"><use href="#i-calc"/></svg><span>Momskalkylator</span></a>
         <a href="#deklaration" class="nav-item" data-view="deklaration"><svg class="ic"><use href="#i-doc"/></svg><span>Momsdeklaration</span></a>
         <a href="#anteckningar" class="nav-item" data-view="anteckningar"><svg class="ic"><use href="#i-note"/></svg><span>Anteckningar</span></a>
         <a href="#installningar" class="nav-item" data-view="installningar"><svg class="ic"><use href="#i-gear"/></svg><span>Inställningar</span></a>
@@ -208,6 +210,73 @@
           </div>
         </section>
 
+        <!-- ===================== KALKYLATOR ===================== -->
+        <section class="view" id="view-kalkylator" hidden>
+          <div class="view-head">
+            <h1>Momskalkylator</h1>
+            <p class="muted">Skriv ett belopp så räknar jag ut momsen direkt. Spara det du vill minnas.</p>
+          </div>
+
+          <div class="panel form-card">
+            <div class="field">
+              <label for="cWhat">Vad gäller det?</label>
+              <input type="text" id="cWhat" placeholder="t.ex. Såld vara" autocomplete="off" />
+            </div>
+
+            <div class="seg" role="radiogroup" aria-label="Typ av händelse">
+              <label class="seg-opt">
+                <input type="radio" name="ctype" value="forsaljning" checked />
+                <span>Försäljning</span>
+              </label>
+              <label class="seg-opt">
+                <input type="radio" name="ctype" value="inkop" />
+                <span>Inköp</span>
+              </label>
+            </div>
+
+            <div class="grid-3">
+              <div class="field">
+                <label for="cAmount">Belopp</label>
+                <div class="input-money">
+                  <input type="number" id="cAmount" inputmode="decimal" step="0.01" min="0" placeholder="0,00" />
+                  <span>kr</span>
+                </div>
+              </div>
+              <div class="field">
+                <label for="cIncl">Beloppet är</label>
+                <select id="cIncl">
+                  <option value="exkl" selected>Exkl. moms</option>
+                  <option value="inkl">Inkl. moms</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="cRate">Momssats</label>
+                <select id="cRate">
+                  <option value="25" selected>25 %</option>
+                  <option value="12">12 %</option>
+                  <option value="6">6 %</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="result-card" id="calcResult" aria-live="polite">
+            <div class="result-row"><span>Exkl. moms</span><strong id="cExcl">0 kr</strong></div>
+            <div class="result-row"><span>Moms <em id="cRateLbl">(25 %)</em></span><strong id="cVat">0 kr</strong></div>
+            <div class="result-row total"><span>Totalt inkl. moms</span><strong id="cTotal">0 kr</strong></div>
+          </div>
+
+          <button class="btn-primary btn-block" id="calcSave"><svg class="ic"><use href="#i-check"/></svg> Spara uträkning</button>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Sparade uträkningar</h2>
+              <span class="muted small" id="calcCount">0 st</span>
+            </div>
+            <div id="calcList" class="calc-list"></div>
+          </div>
+        </section>
+
         <!-- ===================== DEKLARATION ===================== -->
         <section class="view" id="view-deklaration" hidden>
           <div class="view-head">
@@ -306,6 +375,7 @@
       <nav class="bottom-nav" aria-label="Huvudmeny mobil">
         <a href="#oversikt" class="bn-item" data-view="oversikt"><svg class="ic"><use href="#i-home"/></svg><span>Översikt</span></a>
         <a href="#kvitton" class="bn-item" data-view="kvitton"><svg class="ic"><use href="#i-receipt"/></svg><span>Kvitton</span></a>
+        <a href="#kalkylator" class="bn-item" data-view="kalkylator"><svg class="ic"><use href="#i-calc"/></svg><span>Kalkyl</span></a>
         <a href="#deklaration" class="bn-item" data-view="deklaration"><svg class="ic"><use href="#i-doc"/></svg><span>Moms</span></a>
         <a href="#anteckningar" class="bn-item" data-view="anteckningar"><svg class="ic"><use href="#i-note"/></svg><span>Anteckn.</span></a>
         <a href="#installningar" class="bn-item" data-view="installningar"><svg class="ic"><use href="#i-gear"/></svg><span>Mer</span></a>
