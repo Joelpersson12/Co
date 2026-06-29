@@ -18,6 +18,7 @@ function defaultState() {
     receipts: [],          // {id, verNr, date, type, party, desc, exkl, vat, total, rate, fileData, note, createdAt}
     calculations: [],      // {id, ts, label, type, amount, inclusive, rate, exkl, vat, total, bookedId}
     notes: '',
+    importedIds: {},       // Stripe balance-transaction ids already imported (dedupe)
     checks: {},            // { 'periodKey': [bool x5] }
     activePeriod: null,    // periodKey string, null = current
   };
@@ -651,6 +652,180 @@ function maybeNotify(force) {
   });
 }
 
+/* ---------- Stripe CSV import ---------- */
+// Minimal CSV parser handling quotes ("") and , or ; delimiters.
+function parseCsv(text) {
+  text = text.replace(/^﻿/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const firstLine = text.slice(0, text.indexOf('\n') < 0 ? text.length : text.indexOf('\n'));
+  const delim = (firstLine.split(';').length > firstLine.split(',').length) ? ';' : ',';
+  const rows = []; let row = []; let cur = ''; let inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQ) {
+      if (ch === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else inQ = false; }
+      else cur += ch;
+    } else if (ch === '"') inQ = true;
+    else if (ch === delim) { row.push(cur); cur = ''; }
+    else if (ch === '\n') { row.push(cur); rows.push(row); row = []; cur = ''; }
+    else cur += ch;
+  }
+  if (cur.length || row.length) { row.push(cur); rows.push(row); }
+  return rows.filter(r => r.length && r.some(c => c.trim() !== ''));
+}
+
+function numSv(s) {
+  if (s == null) return 0;
+  s = String(s).replace(/[^\d.,-]/g, '');
+  if (s.indexOf(',') > -1 && s.indexOf('.') > -1) s = s.replace(/,/g, '');       // 1,234.56
+  else if (s.indexOf(',') > -1) s = s.replace(',', '.');                          // 12,34
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+
+function toIsoDate(s) {
+  if (!s) return new Date().toISOString().slice(0, 10);
+  s = String(s).trim();
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  const d = new Date(s);
+  return isNaN(d) ? new Date().toISOString().slice(0, 10) : d.toISOString().slice(0, 10);
+}
+
+// Pick a "who" column, avoiding amount/currency/id columns that contain "customer".
+function findCust(headers) {
+  const bad = /(amount|currency|facing|fee|net|gross|number|^id$|_id$|country|zip|postal)/;
+  const good = [/customer.?email/, /customer.?name/, /card.?name/, /^customer$/, /^description$/, /statement.?descriptor/];
+  for (const re of good) {
+    const i = headers.findIndex(h => re.test(h) && !bad.test(h));
+    if (i > -1) return i;
+  }
+  return -1;
+}
+
+// Inspect a parsed Stripe CSV and return import rows + meta.
+function analyzeStripe(rows) {
+  if (rows.length < 2) return { error: 'Filen verkar tom eller saknar rader.' };
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+  const find = (re) => headers.findIndex(h => re.test(h));
+  const col = {
+    id: find(/balance.?transaction|^id$|^charge.?id|source.?id/),
+    cat: find(/reporting.?category|^type$/),
+    date: find(/available.?on|created.*utc|^created/),
+    gross: find(/^gross$/),
+    net: find(/^net$/),
+    fee: find(/^fee$|^fees$/),
+    cur: find(/^currency$/),
+    convAmt: headers.findIndex(h => /converted.*amount/.test(h) && !/refund/.test(h)),
+    convCur: find(/converted.*currency/),
+    amount: headers.findIndex(h => /^amount$/.test(h) && !/refund/.test(h)),
+    cust: findCust(headers),
+  };
+
+  const items = []; let curWarn = '';
+  for (let r = 1; r < rows.length; r++) {
+    const c = rows[r];
+    const cat = col.cat > -1 ? (c[col.cat] || '').toLowerCase() : '';
+    if (/payout/.test(cat)) continue;                      // skip the payout line itself
+    let gross, cur;
+    if (col.gross > -1) { gross = numSv(c[col.gross]); cur = col.cur > -1 ? c[col.cur] : ''; }
+    else if (col.convAmt > -1) { gross = numSv(c[col.convAmt]); cur = col.convCur > -1 ? c[col.convCur] : ''; }
+    else if (col.amount > -1) { gross = numSv(c[col.amount]); cur = col.cur > -1 ? c[col.cur] : ''; }
+    else continue;
+    if (!(gross > 0)) continue;                            // skip refunds/adjustments/zero
+    const fee = col.fee > -1 ? Math.abs(numSv(c[col.fee])) : 0;
+    if (cur && cur.toUpperCase() !== 'SEK') curWarn = cur.toUpperCase();
+    items.push({
+      id: col.id > -1 ? (c[col.id] || '') : '',
+      date: toIsoDate(col.date > -1 ? c[col.date] : ''),
+      gross, fee,
+      party: (col.cust > -1 ? (c[col.cust] || '') : '').trim() || 'Stripe-kund',
+    });
+  }
+  return { items, curWarn, headers };
+}
+
+let pendingImport = null;
+
+function setupStripeImport() {
+  const fileEl = document.getElementById('impFile');
+  const preview = document.getElementById('impPreview');
+  const confirmBtn = document.getElementById('impConfirm');
+
+  document.getElementById('impAnalyze').addEventListener('click', () => {
+    const file = fileEl.files[0];
+    if (!file) { toast('Välj en CSV-fil först'); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      let res;
+      try { res = analyzeStripe(parseCsv(reader.result)); }
+      catch { res = { error: 'Kunde inte läsa filen.' }; }
+      if (res.error || !res.items) {
+        preview.hidden = false; confirmBtn.hidden = true;
+        preview.innerHTML = `<div class="imp-warn">${res.error || 'Hittade inga rader att importera.'}</div>`;
+        return;
+      }
+      if (!res.items.length) {
+        preview.hidden = false; confirmBtn.hidden = true;
+        preview.innerHTML = `<div class="imp-warn">Hittade inga försäljningsrader. Kontrollera att du exporterat rätt rapport (med kolumnerna gross/fee, eller Converted Amount).</div>`;
+        return;
+      }
+      const incFees = document.getElementById('impFees').checked;
+      const totGross = res.items.reduce((s, i) => s + i.gross, 0);
+      const totFee = res.items.reduce((s, i) => s + i.fee, 0);
+      const dupes = res.items.filter(i => i.id && state.importedIds[i.id]).length;
+      pendingImport = res.items;
+      const rowsHtml = res.items.slice(0, 5).map(i =>
+        `<tr><td>${fmtDate(i.date)}</td><td>${esc(i.party)}</td><td class="num">${kr(i.gross)}</td><td class="num">${kr(i.fee)}</td></tr>`
+      ).join('');
+      preview.hidden = false; confirmBtn.hidden = false;
+      preview.innerHTML = `
+        <h4>Förhandsgranskning</h4>
+        <div class="imp-stat"><span>Försäljningar att skapa</span><strong>${res.items.length} st</strong></div>
+        <div class="imp-stat"><span>Summa försäljning (brutto)</span><strong>${kr(totGross)}</strong></div>
+        <div class="imp-stat"><span>Stripe-avgifter ${incFees ? '(skapas som inköp)' : '(hoppas över)'}</span><strong>${kr(totFee)}</strong></div>
+        ${dupes ? `<div class="imp-stat"><span>Redan importerade (hoppas över)</span><strong>${dupes} st</strong></div>` : ''}
+        <table><thead><tr><th>Datum</th><th>Motpart</th><th class="num">Brutto</th><th class="num">Avgift</th></tr></thead><tbody>${rowsHtml}</tbody></table>
+        ${res.items.length > 5 ? `<p class="muted small">…och ${res.items.length - 5} till.</p>` : ''}
+        ${res.curWarn ? `<div class="imp-warn">Obs: beloppen verkar vara i ${res.curWarn}, inte SEK. Exportera en rapport i SEK (Payout reconciliation) för rätt summor.</div>` : `<div class="imp-ok">Beloppen tolkas som SEK ✓</div>`}`;
+    };
+    reader.readAsText(file);
+  });
+
+  confirmBtn.addEventListener('click', () => {
+    if (!pendingImport) return;
+    const rate = Number(document.getElementById('impRate').value);
+    const incFees = document.getElementById('impFees').checked;
+    let ver = nextVerNr();
+    let made = 0, skipped = 0;
+    for (const it of pendingImport) {
+      if (it.id && state.importedIds[it.id]) { skipped++; continue; }
+      const c = computeVat(it.gross, rate, 'inkl');
+      state.receipts.push({
+        id: 'r' + Date.now() + Math.random().toString(36).slice(2, 6), verNr: ver++,
+        date: it.date, type: 'forsaljning', party: it.party, desc: 'Stripe-försäljning',
+        exkl: c.exkl, vat: c.vat, total: c.total, rate, fileData: '',
+        note: 'Importerad från Stripe', createdAt: new Date().toISOString(),
+      });
+      if (incFees && it.fee > 0) {
+        state.receipts.push({
+          id: 'r' + Date.now() + Math.random().toString(36).slice(2, 6), verNr: ver++,
+          date: it.date, type: 'inkop', party: 'Stripe', desc: 'Stripe-avgift',
+          exkl: it.fee, vat: 0, total: it.fee, rate: 0, fileData: '',
+          note: 'Importerad från Stripe (omvänd skattskyldighet – moms ej avdragen här)', createdAt: new Date().toISOString(),
+        });
+      }
+      if (it.id) state.importedIds[it.id] = true;
+      made++;
+    }
+    save(); renderAll();
+    document.getElementById('impPreview').hidden = true;
+    confirmBtn.hidden = true;
+    document.getElementById('impFile').value = '';
+    pendingImport = null;
+    toast(`Importerade ${made} försäljningar${skipped ? `, hoppade över ${skipped}` : ''} ✓`, 3500);
+  });
+}
+
 function setupReminders() {
   document.getElementById('icsBtn').addEventListener('click', downloadIcs);
   document.getElementById('notifyBtn').addEventListener('click', async () => {
@@ -722,6 +897,7 @@ function boot() {
   setupHints();
   setupExport();
   setupReminders();
+  setupStripeImport();
   registerServiceWorker();
   renderAll();
   maybeNotify(false);

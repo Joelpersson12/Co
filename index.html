@@ -140,6 +140,38 @@
             <p class="muted">Lägg in allt du köpt och sålt. Momsen räknas ut åt dig.</p>
           </div>
 
+          <details class="panel import-panel" id="stripeImport">
+            <summary><svg class="ic"><use href="#i-doc"/></svg> Importera från Stripe (CSV)</summary>
+            <p class="muted small import-help">
+              I Stripe: <strong>Balance → Payouts</strong> (eller Reports → Payout reconciliation) →
+              exportera som CSV i SEK. Ladda upp filen här så skapas kvittona åt dig.
+            </p>
+            <div class="grid-2">
+              <div class="field">
+                <label for="impFile">CSV-fil från Stripe</label>
+                <input type="file" id="impFile" accept=".csv,text/csv" />
+              </div>
+              <div class="field">
+                <label for="impRate">Momssats på försäljning</label>
+                <select id="impRate">
+                  <option value="25" selected>25 % (svensk kund)</option>
+                  <option value="12">12 %</option>
+                  <option value="6">6 %</option>
+                  <option value="0">0 % (kund utanför EU)</option>
+                </select>
+              </div>
+            </div>
+            <label class="check-inline">
+              <input type="checkbox" id="impFees" checked />
+              Skapa även Stripe-avgiften som inköp (0 % moms)
+            </label>
+            <div id="impPreview" class="import-preview" hidden></div>
+            <div class="form-actions">
+              <button type="button" class="btn-ghost" id="impAnalyze">Analysera fil</button>
+              <button type="button" class="btn-primary" id="impConfirm" hidden><svg class="ic"><use href="#i-check"/></svg> Importera</button>
+            </div>
+          </details>
+
           <form class="panel form-card" id="receiptForm">
             <h2 class="form-title">Nytt kvitto</h2>
 
