@@ -798,29 +798,41 @@ function setupStripeImport() {
         return;
       }
       const incFees = document.getElementById('impFees').checked;
-      const sales = res.items.filter(i => i.kind === 'sale');
-      const totGross = sales.reduce((s, i) => s + (i.gross || 0), 0);
-      const totFee = res.items.reduce((s, i) => s + (i.fee || 0), 0);
-      const dupes = res.items.filter(i => i.id && state.importedIds[i.id]).length;
-      const blockImport = !!res.curWarn;   // don't import non-SEK amounts as SEK
-      pendingImport = blockImport ? null : res.items;
+      const isDupe = (i) => i.id && state.importedIds[i.id];
+      const newItems = res.items.filter(i => !isDupe(i));     // what will actually be created
+      const newSales = newItems.filter(i => i.kind === 'sale');
+      const dupes = res.items.length - newItems.length;
+      const totGross = newSales.reduce((s, i) => s + (i.gross || 0), 0);
+      const totFee = newItems.reduce((s, i) => s + (i.fee || 0), 0);
+      const blockImport = !!res.curWarn;                      // don't import non-SEK amounts as SEK
+      const nothingNew = newItems.length === 0;
+      pendingImport = (blockImport || nothingNew) ? null : res.items;
+      const periodsOf = (arr) => [...new Set(arr.map(i =>
+        periodLabel(state.settings.period, currentPeriodKey(state.settings.period, new Date(i.date + 'T00:00:00')))))];
       const rowsHtml = res.items.slice(0, 6).map(i =>
         i.kind === 'fee'
           ? `<tr><td>${fmtDate(i.date)}</td><td>Stripe-avgift</td><td class="num">—</td><td class="num">${kr(i.fee)}</td></tr>`
           : `<tr><td>${fmtDate(i.date)}</td><td>${esc(i.party)}</td><td class="num">${kr(i.gross)}</td><td class="num">${kr(i.fee)}</td></tr>`
       ).join('');
-      preview.hidden = false; confirmBtn.hidden = blockImport;
+      preview.hidden = false; confirmBtn.hidden = blockImport || nothingNew;
+      let footer;
+      if (res.curWarn) {
+        footer = `<div class="imp-warn">Beloppen är i ${res.curWarn}, inte SEK${res.invoiceLike ? ' (faktura-export utan avgifter)' : ''}. Importen är pausad så att inga felaktiga belopp bokförs.<br>Exportera istället <strong>Balance → Payouts</strong> i SEK, så funkar det direkt.</div>`;
+      } else if (nothingNew) {
+        const where = periodsOf(res.items.filter(i => i.kind === 'sale')).join(', ') || periodsOf(res.items).join(', ');
+        footer = `<div class="imp-ok">Allt i den här filen är redan importerat ✓</div><div class="imp-stat" style="margin-top:6px"><span>Kvittona ligger under</span><strong>${where}</strong></div><p class="muted small">Växla period uppe till vänster för att se dem.</p>`;
+      } else {
+        footer = `<div class="imp-ok">Beloppen tolkas som SEK ✓</div>`;
+      }
       preview.innerHTML = `
         <h4>Förhandsgranskning</h4>
-        <div class="imp-stat"><span>Försäljningar ${blockImport ? 'i filen' : 'att skapa'}</span><strong>${sales.length} st</strong></div>
+        <div class="imp-stat"><span>Försäljningar ${blockImport ? 'i filen' : 'att skapa'}</span><strong>${(blockImport ? res.items.filter(i=>i.kind==='sale') : newSales).length} st</strong></div>
         <div class="imp-stat"><span>Summa försäljning (brutto)</span><strong>${kr(totGross)}</strong></div>
         <div class="imp-stat"><span>Stripe-avgifter ${incFees ? '(skapas som inköp)' : '(hoppas över)'}</span><strong>${kr(totFee)}</strong></div>
         ${dupes ? `<div class="imp-stat"><span>Redan importerade (hoppas över)</span><strong>${dupes} st</strong></div>` : ''}
         <table><thead><tr><th>Datum</th><th>Motpart</th><th class="num">Brutto</th><th class="num">Avgift</th></tr></thead><tbody>${rowsHtml}</tbody></table>
         ${res.items.length > 6 ? `<p class="muted small">…och ${res.items.length - 6} till.</p>` : ''}
-        ${res.curWarn
-          ? `<div class="imp-warn">Beloppen är i ${res.curWarn}, inte SEK${res.invoiceLike ? ' (faktura-export utan avgifter)' : ''}. Importen är pausad så att inga felaktiga belopp bokförs.<br>Exportera istället <strong>Balance → Payouts</strong> i SEK, så funkar det direkt.</div>`
-          : `<div class="imp-ok">Beloppen tolkas som SEK ✓</div>`}`;
+        ${footer}`;
     };
     reader.readAsText(file);
   });
@@ -836,7 +848,7 @@ function setupStripeImport() {
       exkl: amt, vat: 0, total: amt, rate: 0, fileData: '',
       note: 'Importerad från Stripe (omvänd skattskyldighet – moms ej avdragen här)', createdAt: new Date().toISOString(),
     });
-    let made = 0, skipped = 0;
+    let made = 0, skipped = 0, lastSaleDate = null;
     for (const it of pendingImport) {
       if (it.id && state.importedIds[it.id]) { skipped++; continue; }
       if (it.kind === 'fee') {
@@ -849,16 +861,24 @@ function setupStripeImport() {
           note: 'Importerad från Stripe', createdAt: new Date().toISOString(),
         });
         if (incFees && it.fee > 0) state.receipts.push(feeReceipt(it.date, it.fee));
+        lastSaleDate = it.date;
       }
       if (it.id) state.importedIds[it.id] = true;
       made++;
+    }
+    // Jump to the period the imported sales belong to, so they're visible.
+    let landedNote = '';
+    if (lastSaleDate) {
+      const k = currentPeriodKey(state.settings.period, new Date(lastSaleDate + 'T00:00:00'));
+      state.activePeriod = (k === currentPeriodKey(state.settings.period)) ? null : k;
+      landedNote = ` till ${periodLabel(state.settings.period, k)}`;
     }
     save(); renderAll();
     document.getElementById('impPreview').hidden = true;
     confirmBtn.hidden = true;
     document.getElementById('impFile').value = '';
     pendingImport = null;
-    toast(`Importerade ${made} försäljningar${skipped ? `, hoppade över ${skipped}` : ''} ✓`, 3500);
+    toast(`Importerade ${made} poster${landedNote}${skipped ? `, hoppade över ${skipped}` : ''} ✓`, 3500);
   });
 }
 
