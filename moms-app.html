@@ -968,7 +968,13 @@ function load() {
   try {
     const raw = localStorage.getItem(STORE_KEY);
     if (!raw) return defaultState();
-    return Object.assign(defaultState(), JSON.parse(raw));
+    const s = Object.assign(defaultState(), JSON.parse(raw));
+    // Migration: earlier Stripe fees were booked as plain 0 % — mark them as
+    // EU reverse-charge so rutorna 21/30/48 are complete (does not change ruta 49).
+    (s.receipts || []).forEach(r => {
+      if (r.desc === 'Stripe-avgift' && r.type === 'inkop' && !r.reverse) r.reverse = true;
+    });
+    return s;
   } catch { return defaultState(); }
 }
 function save() {
@@ -1085,19 +1091,25 @@ function receiptsInPeriod() {
 /* ---------- VAT declaration totals ---------- */
 function declTotals() {
   const rs = receiptsInPeriod();
-  const t = { sales: 0, u25: 0, u12: 0, u6: 0, ing: 0 };
+  const t = { sales: 0, u25: 0, u12: 0, u6: 0, ing: 0, euServices: 0, reverseVat: 0 };
   for (const r of rs) {
     if (r.type === 'forsaljning') {
       t.sales += r.exkl;
       if (r.rate === 25) t.u25 += r.vat;
       else if (r.rate === 12) t.u12 += r.vat;
       else if (r.rate === 6) t.u6 += r.vat;
+    } else if (r.reverse) {
+      // EU service purchase (e.g. Stripe fee): buyer self-accounts for VAT.
+      t.euServices += r.exkl;         // ruta 21
+      const rv = r.exkl * 0.25;       // 25 % förvärvsmoms
+      t.reverseVat += rv;             // ruta 30
+      t.ing += rv;                    // ruta 48 (avdragsgill)
     } else {
       t.ing += r.vat;
     }
   }
-  t.utg = t.u25 + t.u12 + t.u6;
-  t.toPay = t.utg - t.ing; // ruta 49
+  t.utg = t.u25 + t.u12 + t.u6 + t.reverseVat; // ruta 10+11+12+30
+  t.toPay = t.utg - t.ing;                       // ruta 49
   return t;
 }
 
@@ -1218,7 +1230,7 @@ function renderReceiptList() {
       ${thumb}
       <div class="receipt-main">
         <div class="receipt-title">${esc(r.party)} <span class="receipt-tag ${isSale ? 'tag-in' : 'tag-out'}">${isSale ? 'Försäljning' : 'Inköp'}</span></div>
-        <div class="receipt-meta"><span>${fmtDate(r.date)}</span><span>${esc(r.desc)}</span><span>${r.rate}% moms</span></div>
+        <div class="receipt-meta"><span>${fmtDate(r.date)}</span><span>${esc(r.desc)}</span><span>${r.reverse ? 'omvänd moms 25 %' : r.rate + '% moms'}</span></div>
       </div>
       <div class="receipt-amt">
         <div class="a">${kr(r.total)}</div>
@@ -1294,8 +1306,12 @@ function renderDeclaration() {
     ['10', 'Utgående moms 25 %', t.u25],
     ['11', 'Utgående moms 12 %', t.u12],
     ['12', 'Utgående moms 6 %', t.u6],
-    ['48', 'Ingående moms att dra av', t.ing],
   ];
+  if (t.euServices >= 0.5) {
+    rows.push(['21', 'Inköp av tjänster från annat EU-land', t.euServices]);
+    rows.push(['30', 'Utgående moms 25 % på inköp (ruta 20–21)', t.reverseVat]);
+  }
+  rows.push(['48', 'Ingående moms att dra av', t.ing]);
   const tbody = document.getElementById('declRows');
   tbody.innerHTML = rows.map(([n, label, val]) =>
     `<tr><td class="decl-ruta">${n}</td><td>${label}</td><td class="num">${kr(val)}</td></tr>`
@@ -1304,7 +1320,6 @@ function renderDeclaration() {
 
   const adv = [
     ['20', 'Inköp av varor från annat EU-land'],
-    ['21', 'Inköp av tjänster från annat EU-land'],
     ['35', 'Försäljning av varor till annat EU-land'],
     ['39', 'Försäljning av tjänster till näringsidkare i EU'],
   ];
@@ -1801,8 +1816,8 @@ function setupStripeImport() {
     const newId = () => 'r' + Date.now() + Math.random().toString(36).slice(2, 6);
     const feeReceipt = (date, amt) => ({
       id: newId(), verNr: ver++, date, type: 'inkop', party: 'Stripe', desc: 'Stripe-avgift',
-      exkl: amt, vat: 0, total: amt, rate: 0, fileData: '',
-      note: 'Importerad från Stripe (omvänd skattskyldighet – moms ej avdragen här)', createdAt: new Date().toISOString(),
+      exkl: amt, vat: 0, total: amt, rate: 0, fileData: '', reverse: true,
+      note: 'Importerad från Stripe · EU-tjänst, omvänd skattskyldighet 25 %', createdAt: new Date().toISOString(),
     });
     let made = 0, skipped = 0, lastSaleDate = null;
     for (const it of pendingImport) {
@@ -1887,14 +1902,21 @@ function buildQuarterReport() {
     L('10  Utgående moms 25%', Math.round(t.u25)),
     L('11  Utgående moms 12%', Math.round(t.u12)),
     L('12  Utgående moms 6%', Math.round(t.u6)),
+    ...(t.euServices >= 0.5 ? [
+      L('21  Inköp av tjänster från annat EU-land', Math.round(t.euServices)),
+      L('30  Utgående moms 25% på inköp (ruta 20-21)', Math.round(t.reverseVat)),
+    ] : []),
     L('48  Ingående moms att dra av', Math.round(t.ing)),
     L(`49  Moms att ${t.toPay >= 0 ? 'betala' : 'få tillbaka'}`, Math.round(Math.abs(t.toPay))),
     '',
     L(`Verifikationer (${rs.length} st)`),
     L('Vernr', 'Datum', 'Typ', 'Motpart', 'Vad avser', 'Exkl moms', 'Momssats', 'Moms', 'Totalt', 'Anteckning'),
     ...rs.map(r => L(
-      r.verNr, r.date, r.type === 'forsaljning' ? 'Försäljning' : 'Inköp',
-      r.party, r.desc, r.exkl.toFixed(2), r.rate + '%', r.vat.toFixed(2), r.total.toFixed(2), r.note || ''
+      r.verNr, r.date,
+      r.type === 'forsaljning' ? 'Försäljning' : (r.reverse ? 'Inköp (EU omvänd moms)' : 'Inköp'),
+      r.party, r.desc, r.exkl.toFixed(2),
+      r.reverse ? 'omvänd 25%' : r.rate + '%',
+      (r.reverse ? r.exkl * 0.25 : r.vat).toFixed(2), r.total.toFixed(2), r.note || ''
     )),
   ];
   return '﻿' + lines.join('\r\n');
