@@ -376,7 +376,11 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
 #notesSaved { margin-top: 8px; opacity: 0; transition: opacity 0.3s; }
 #notesSaved.show { opacity: 1; }
 
-/* ===================== Settings danger zone ===================== */
+/* ===================== Settings: sync & danger zone ===================== */
+.sync-panel h2 { margin-bottom: 4px; }
+.sync-steps { margin: 10px 0 16px 20px; color: var(--text-dim); font-size: 0.93rem; display: flex; flex-direction: column; gap: 6px; }
+.sync-steps strong { color: var(--text); }
+
 .danger-zone h2 { margin-bottom: 4px; }
 .file-btn { cursor: pointer; }
 .disclaimer {

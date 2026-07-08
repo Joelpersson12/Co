@@ -576,14 +576,46 @@ function setupSettings() {
     a.download = `moms-backup-${new Date().toISOString().slice(0,10)}.json`;
     a.click();
   });
+  // Share the full data file to another device (sms/mejl/AirDrop), with
+  // download as fallback where Web Share isn't available (e.g. desktop).
+  document.getElementById('shareDataBtn').addEventListener('click', async () => {
+    const json = JSON.stringify(state, null, 2);
+    const fname = `moms-data-${new Date().toISOString().slice(0, 10)}.json`;
+    try {
+      const file = new File([json], fname, { type: 'application/json' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'Moms — min data', text: 'Öppna Moms-appen på den andra enheten → Inställningar → Läs in data från fil.' });
+        return;
+      }
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+    a.download = fname;
+    a.click();
+    toast('Filen laddades ner — skicka den till dig själv (sms/mejl) och läs in den på andra enheten.', 4500);
+  });
+
   document.getElementById('restoreInput').addEventListener('change', (e) => {
     const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        state = Object.assign(defaultState(), JSON.parse(reader.result));
-        save(); renderAll(); toast('Återställt ✓'); navTo('oversikt');
+        const incoming = JSON.parse(reader.result);
+        if (!incoming || typeof incoming !== 'object' || !Array.isArray(incoming.receipts)) {
+          toast('Det där ser inte ut som en Moms-datafil.'); return;
+        }
+        const hasData = state.receipts.length || state.calculations.length || state.notes;
+        if (hasData && !confirm('Den här enheten har redan data. Ersätta den med filens innehåll?')) return;
+        state = Object.assign(defaultState(), incoming);
+        // Same migration as load(): flag old Stripe fees as reverse charge.
+        state.receipts.forEach(r => {
+          if (r.desc === 'Stripe-avgift' && r.type === 'inkop' && !r.reverse) r.reverse = true;
+        });
+        save(); renderAll(); toast('Data inläst ✓'); navTo('oversikt');
       } catch { toast('Kunde inte läsa filen'); }
+      e.target.value = '';
     };
     reader.readAsText(file);
   });

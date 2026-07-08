@@ -437,12 +437,27 @@
             </div>
           </form>
 
+          <div class="panel sync-panel">
+            <h2>Flytta till annan enhet</h2>
+            <p class="muted small">
+              Din data sparas <strong>lokalt på varje enhet</strong> — mobilen och datorn delar den inte automatiskt.
+              Så här flyttar du allt:
+            </p>
+            <ol class="sync-steps">
+              <li>Tryck <strong>Skicka min data</strong> här och skicka filen till dig själv (sms, mejl eller AirDrop).</li>
+              <li>Öppna appen på den andra enheten → Inställningar → <strong>Läs in data från fil</strong> och välj filen.</li>
+            </ol>
+            <div class="form-actions">
+              <button class="btn-primary" id="shareDataBtn"><svg class="ic"><use href="#i-doc"/></svg> Skicka min data</button>
+              <label class="btn-ghost file-btn">Läs in data från fil<input type="file" id="restoreInput" accept="application/json,.json" hidden /></label>
+            </div>
+          </div>
+
           <div class="panel danger-zone">
-            <h2>Hantera data</h2>
-            <p class="muted small">All din data ligger lokalt i den här webbläsaren. Ta en säkerhetskopia ibland.</p>
+            <h2>Säkerhetskopia</h2>
+            <p class="muted small">Ladda ner en kopia av allt ibland — bra om enheten tappas bort.</p>
             <div class="form-actions">
               <button class="btn-ghost" id="backupBtn">Ladda ner säkerhetskopia</button>
-              <label class="btn-ghost file-btn">Återställ från fil<input type="file" id="restoreInput" accept="application/json" hidden /></label>
               <button class="btn-danger" id="wipeBtn"><svg class="ic"><use href="#i-trash"/></svg> Radera allt</button>
             </div>
           </div>
