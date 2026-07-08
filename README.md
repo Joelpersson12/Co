@@ -12,7 +12,17 @@ Designen är inspirerad av moderna Framer-mallar (vibrant + oma-voxia) — ljus,
 - **Importera från Stripe** — ladda upp en payout-/balansrapport (CSV) i SEK så skapas försäljningarna (och Stripe-avgifterna) automatiskt, med förhandsgranskning och dubblettskydd.
 - **Skicka till revisor** — samlar hela kvartalet (alla kvitton + momssummorna) i en fil som kan delas via sms/mejl (Web Share) eller laddas ner.
 - **Påminnelser** — banner när deadline närmar sig, kalenderexport (.ics) med larm, och valfria webbläsarnotiser.
-- **PWA** — installeras på hemskärmen och fungerar offline (kräver att alla filer i `huggingface/` serveras tillsammans).
+- **PWA** — installeras på hemskärmen och fungerar offline (kräver att alla filer i `huggingface/` serveras tillsammans). Uppdateringar hämtas automatiskt (nätverk-först).
+- **Moln-synk ("inloggning")** — klistra in en personlig Hugging Face-nyckel (Write) under Inställningar så sparas all data automatiskt i ett privat dataset (`dittnamn/moms-data`) och synkas mellan enheter. Nyckeln lagras separat från datan och följer aldrig med i backup-/flyttfiler.
+
+## Automatisk deploy till Hugging Face
+
+`.github/workflows/deploy-hf.yml` pushar innehållet i `huggingface/` till din Space vid varje push. Engångsinställning i GitHub-repot under **Settings → Secrets and variables → Actions**:
+
+1. Secret `HF_TOKEN` — en Hugging Face-token med Write-behörighet
+2. Variable `HF_SPACE` — din Space, t.ex. `dittnamn/moms`
+
+Därefter deployas varje ändring automatiskt (eller manuellt via Actions → Run workflow).
 - **Momsdeklaration** — summorna förs automatiskt till rätt rutor (05, 10, 11, 12, 48, 49) så du bara skriver av dem hos Skatteverket. Exportera underlag som CSV.
 - **Anteckningar** — fri text som sparas automatiskt.
 - **Inställningar** — namn, org.nr och hur ofta du redovisar (kvartal/månad/helår). Säkerhetskopiera och återställ all data.

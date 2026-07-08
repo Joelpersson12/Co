@@ -50,7 +50,7 @@
         <a href="#installningar" class="nav-item" data-view="installningar"><svg class="ic"><use href="#i-gear"/></svg><span>Inställningar</span></a>
       </nav>
       <div class="side-foot">
-        <p>Allt sparas <strong>lokalt på din enhet</strong>. Inget skickas någonstans.</p>
+        <p>Din data sparas <strong>på din enhet</strong> — och i ditt eget privata molnarkiv om du slår på synk.</p>
       </div>
     </aside>
 
@@ -437,11 +437,38 @@
             </div>
           </form>
 
+          <div class="panel sync-panel" id="cloudPanel">
+            <h2>Moln-synk — din inloggning</h2>
+            <div id="cloudOff">
+              <p class="muted small">
+                Koppla en personlig nyckel så sparas allt du gör <strong>automatiskt i ett privat molnarkiv</strong>
+                på ditt Hugging Face-konto — och dyker upp på både mobilen och datorn.
+                Nyckeln är din inloggning: klistra in <strong>samma nyckel</strong> på varje enhet.
+              </p>
+              <ol class="sync-steps">
+                <li>Gå till <strong class="nowrap">huggingface.co/settings/tokens</strong> → Create new token → välj typ <strong>Write</strong>.</li>
+                <li>Kopiera nyckeln (börjar med <strong>hf_</strong>) och klistra in här. Spara den även någonstans säkert.</li>
+              </ol>
+              <div class="field">
+                <label for="hfToken">Din nyckel</label>
+                <input type="password" id="hfToken" placeholder="hf_…" autocomplete="off" />
+              </div>
+              <button class="btn-primary" id="syncEnableBtn">Aktivera moln-synk</button>
+            </div>
+            <div id="cloudOn" hidden>
+              <p class="sync-ok" id="syncStatus">Moln-synk är på ✓</p>
+              <p class="muted small" id="syncInfo"></p>
+              <div class="form-actions">
+                <button class="btn-ghost" id="syncNowBtn">Synka nu</button>
+                <button class="btn-danger" id="syncOffBtn">Koppla från den här enheten</button>
+              </div>
+            </div>
+          </div>
+
           <div class="panel sync-panel">
             <h2>Flytta till annan enhet</h2>
             <p class="muted small">
-              Din data sparas <strong>lokalt på varje enhet</strong> — mobilen och datorn delar den inte automatiskt.
-              Så här flyttar du allt:
+              Utan moln-synk sparas datan bara lokalt på varje enhet. Så här flyttar du allt manuellt:
             </p>
             <ol class="sync-steps">
               <li>Tryck <strong>Skicka min data</strong> här och skicka filen till dig själv (sms, mejl eller AirDrop).</li>

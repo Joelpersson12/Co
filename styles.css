@@ -227,7 +227,7 @@ h3 { font-size: 1.05rem; font-weight: 700; }
 .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
 .field label { font-weight: 600; font-size: 0.9rem; color: var(--text); }
 .field-help { font-size: 0.82rem; color: var(--text-faint); }
-input[type="text"], input[type="number"], input[type="date"], select, textarea {
+input[type="text"], input[type="number"], input[type="date"], input[type="password"], select, textarea {
   font-family: inherit; font-size: 1rem; color: var(--text);
   background: var(--surface); border: 1px solid var(--line-strong); border-radius: 11px;
   padding: 12px 14px; width: 100%; transition: border-color 0.18s var(--ease), box-shadow 0.18s var(--ease);
@@ -378,6 +378,8 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
 
 /* ===================== Settings: sync & danger zone ===================== */
 .sync-panel h2 { margin-bottom: 4px; }
+.sync-ok { color: var(--green); font-weight: 700; margin-bottom: 6px; }
+#syncInfo { margin-bottom: 12px; }
 .sync-steps { margin: 10px 0 16px 20px; color: var(--text-dim); font-size: 0.93rem; display: flex; flex-direction: column; gap: 6px; }
 .sync-steps strong { color: var(--text); }
 

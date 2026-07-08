@@ -239,7 +239,7 @@ h3 { font-size: 1.05rem; font-weight: 700; }
 .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
 .field label { font-weight: 600; font-size: 0.9rem; color: var(--text); }
 .field-help { font-size: 0.82rem; color: var(--text-faint); }
-input[type="text"], input[type="number"], input[type="date"], select, textarea {
+input[type="text"], input[type="number"], input[type="date"], input[type="password"], select, textarea {
   font-family: inherit; font-size: 1rem; color: var(--text);
   background: var(--surface); border: 1px solid var(--line-strong); border-radius: 11px;
   padding: 12px 14px; width: 100%; transition: border-color 0.18s var(--ease), box-shadow 0.18s var(--ease);
@@ -390,6 +390,8 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
 
 /* ===================== Settings: sync & danger zone ===================== */
 .sync-panel h2 { margin-bottom: 4px; }
+.sync-ok { color: var(--green); font-weight: 700; margin-bottom: 6px; }
+#syncInfo { margin-bottom: 12px; }
 .sync-steps { margin: 10px 0 16px 20px; color: var(--text-dim); font-size: 0.93rem; display: flex; flex-direction: column; gap: 6px; }
 .sync-steps strong { color: var(--text); }
 
@@ -512,7 +514,7 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
         <a href="#installningar" class="nav-item" data-view="installningar"><svg class="ic"><use href="#i-gear"/></svg><span>Inställningar</span></a>
       </nav>
       <div class="side-foot">
-        <p>Allt sparas <strong>lokalt på din enhet</strong>. Inget skickas någonstans.</p>
+        <p>Din data sparas <strong>på din enhet</strong> — och i ditt eget privata molnarkiv om du slår på synk.</p>
       </div>
     </aside>
 
@@ -899,11 +901,38 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
             </div>
           </form>
 
+          <div class="panel sync-panel" id="cloudPanel">
+            <h2>Moln-synk — din inloggning</h2>
+            <div id="cloudOff">
+              <p class="muted small">
+                Koppla en personlig nyckel så sparas allt du gör <strong>automatiskt i ett privat molnarkiv</strong>
+                på ditt Hugging Face-konto — och dyker upp på både mobilen och datorn.
+                Nyckeln är din inloggning: klistra in <strong>samma nyckel</strong> på varje enhet.
+              </p>
+              <ol class="sync-steps">
+                <li>Gå till <strong class="nowrap">huggingface.co/settings/tokens</strong> → Create new token → välj typ <strong>Write</strong>.</li>
+                <li>Kopiera nyckeln (börjar med <strong>hf_</strong>) och klistra in här. Spara den även någonstans säkert.</li>
+              </ol>
+              <div class="field">
+                <label for="hfToken">Din nyckel</label>
+                <input type="password" id="hfToken" placeholder="hf_…" autocomplete="off" />
+              </div>
+              <button class="btn-primary" id="syncEnableBtn">Aktivera moln-synk</button>
+            </div>
+            <div id="cloudOn" hidden>
+              <p class="sync-ok" id="syncStatus">Moln-synk är på ✓</p>
+              <p class="muted small" id="syncInfo"></p>
+              <div class="form-actions">
+                <button class="btn-ghost" id="syncNowBtn">Synka nu</button>
+                <button class="btn-danger" id="syncOffBtn">Koppla från den här enheten</button>
+              </div>
+            </div>
+          </div>
+
           <div class="panel sync-panel">
             <h2>Flytta till annan enhet</h2>
             <p class="muted small">
-              Din data sparas <strong>lokalt på varje enhet</strong> — mobilen och datorn delar den inte automatiskt.
-              Så här flyttar du allt:
+              Utan moln-synk sparas datan bara lokalt på varje enhet. Så här flyttar du allt manuellt:
             </p>
             <ol class="sync-steps">
               <li>Tryck <strong>Skicka min data</strong> här och skicka filen till dig själv (sms, mejl eller AirDrop).</li>
@@ -996,9 +1025,11 @@ function load() {
     return s;
   } catch { return defaultState(); }
 }
-function save() {
+function save(opts) {
+  state.updatedAt = Date.now();
   try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
   catch (e) { toast('Kunde inte spara — lagringen kan vara full.'); }
+  if (!(opts && opts.skipSync)) scheduleSyncPush();
 }
 
 /* ---------- Money & VAT helpers ---------- */
@@ -1621,6 +1652,180 @@ function setupPeriodSheet() {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
 }
 
+/* ---------- Cloud sync via a private Hugging Face dataset ----------
+   The user's HF token acts as the "login". It is stored separately from
+   the app data so backups and transfer files never contain it. */
+const SYNC_KEY = 'moms.sync.v1';
+let syncCfg = (() => { try { return JSON.parse(localStorage.getItem(SYNC_KEY)); } catch { return null; } })();
+let syncPushTimer = null;
+let syncBusy = false;
+
+const hfBase = () => (syncCfg && syncCfg.base) || 'https://huggingface.co';
+
+function saveSyncCfg() {
+  if (syncCfg) localStorage.setItem(SYNC_KEY, JSON.stringify(syncCfg));
+  else localStorage.removeItem(SYNC_KEY);
+}
+
+function b64encodeUtf8(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(bin);
+}
+
+async function syncPush() {
+  if (!syncCfg || syncBusy) return;
+  syncBusy = true;
+  try {
+    const json = JSON.stringify(state);
+    const nd = JSON.stringify({ key: 'header', value: { summary: 'moms sync' } }) + '\n' +
+      JSON.stringify({ key: 'file', value: { path: 'data.json', content: b64encodeUtf8(json), encoding: 'base64' } });
+    const r = await fetch(`${hfBase()}/api/datasets/${syncCfg.repo}/commit/main`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + syncCfg.token, 'Content-Type': 'application/x-ndjson' },
+      body: nd,
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    syncCfg.lastSync = Date.now(); saveSyncCfg();
+    renderSyncPanel();
+  } catch (e) {
+    renderSyncPanel('Kunde inte synka just nu — försöker igen vid nästa ändring.');
+  } finally { syncBusy = false; }
+}
+
+function scheduleSyncPush() {
+  if (!syncCfg) return;
+  clearTimeout(syncPushTimer);
+  syncPushTimer = setTimeout(syncPush, 2500);
+}
+
+async function syncPull() {
+  if (!syncCfg) return null;
+  const r = await fetch(`${hfBase()}/datasets/${syncCfg.repo}/resolve/main/data.json?ts=` + Date.now(), {
+    headers: { Authorization: 'Bearer ' + syncCfg.token },
+  });
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+
+// Pull from the cloud and apply if the cloud copy is newer than ours.
+async function syncPullApply() {
+  if (!syncCfg || syncBusy) return;
+  try {
+    const remote = await syncPull();
+    if (remote && (remote.updatedAt || 0) > (state.updatedAt || 0)) {
+      state = Object.assign(defaultState(), remote);
+      state.receipts.forEach(r => {
+        if (r.desc === 'Stripe-avgift' && r.type === 'inkop' && !r.reverse) r.reverse = true;
+      });
+      save({ skipSync: true });
+      renderAll();
+      toast('Hämtade senaste datan från molnet ✓');
+    }
+    syncCfg.lastSync = Date.now(); saveSyncCfg();
+    renderSyncPanel();
+  } catch (e) {
+    renderSyncPanel('Kunde inte nå molnet — visar det som finns på enheten.');
+  }
+}
+
+async function enableSync(token) {
+  const who = await fetch(hfBase() + '/api/whoami-v2', { headers: { Authorization: 'Bearer ' + token } });
+  if (!who.ok) throw new Error('Nyckeln verkar ogiltig — kontrollera att du kopierade hela (hf_…).');
+  const user = (await who.json()).name;
+  const repo = `${user}/moms-data`;
+  const cr = await fetch(hfBase() + '/api/repos/create', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: 'moms-data', type: 'dataset', private: true }),
+  });
+  if (!cr.ok && cr.status !== 409) {
+    const t = await cr.text().catch(() => '');
+    if (!/exist/i.test(t)) throw new Error('Kunde inte skapa molnarkivet. Har nyckeln Write-behörighet?');
+  }
+  syncCfg = Object.assign({}, syncCfg, { token, repo });
+  delete syncCfg.lastSync;
+  saveSyncCfg();
+
+  // First connect: decide direction.
+  const remote = await syncPull().catch(() => null);
+  const localHasData = state.receipts.length || state.calculations.length || state.notes;
+  if (remote && (remote.receipts || []).length && !localHasData) {
+    state = Object.assign(defaultState(), remote);
+    save({ skipSync: true }); renderAll();
+    toast('Hämtade din data från molnet ✓');
+  } else if (remote && (remote.receipts || []).length && localHasData) {
+    const useCloud = confirm('Det finns redan data i molnet OCH på den här enheten.\n\nOK = använd molnets data (ersätter enhetens)\nAvbryt = skriv över molnet med den här enhetens data');
+    if (useCloud) {
+      state = Object.assign(defaultState(), remote);
+      save({ skipSync: true }); renderAll();
+    } else {
+      await syncPush();
+    }
+  } else {
+    await syncPush();
+  }
+  syncCfg.lastSync = Date.now(); saveSyncCfg();
+}
+
+function renderSyncPanel(errMsg) {
+  const off = document.getElementById('cloudOff');
+  const on = document.getElementById('cloudOn');
+  if (!off || !on) return;
+  const active = !!syncCfg && !!syncCfg.token;
+  off.hidden = active;
+  on.hidden = !active;
+  if (active) {
+    const st = document.getElementById('syncStatus');
+    const info = document.getElementById('syncInfo');
+    if (errMsg) {
+      st.textContent = 'Moln-synk är på — men senaste försöket misslyckades';
+      info.textContent = errMsg;
+    } else {
+      st.textContent = 'Moln-synk är på ✓';
+      const when = syncCfg.lastSync ? new Date(syncCfg.lastSync) : null;
+      info.textContent = `Sparas automatiskt till ett privat arkiv (${syncCfg.repo})` +
+        (when ? ` · senast synkad ${String(when.getHours()).padStart(2,'0')}:${String(when.getMinutes()).padStart(2,'0')}` : '');
+    }
+  }
+}
+
+function setupCloudSync() {
+  renderSyncPanel();
+  document.getElementById('syncEnableBtn').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    const token = document.getElementById('hfToken').value.trim();
+    if (!token) { toast('Klistra in din nyckel först'); return; }
+    btn.disabled = true; btn.textContent = 'Kopplar…';
+    try {
+      await enableSync(token);
+      document.getElementById('hfToken').value = '';
+      renderSyncPanel();
+      toast('Moln-synk är på — allt sparas nu automatiskt 🎉', 4000);
+    } catch (err) {
+      toast(err.message || 'Något gick fel. Försök igen.', 4500);
+    } finally { btn.disabled = false; btn.textContent = 'Aktivera moln-synk'; }
+  });
+  document.getElementById('syncNowBtn').addEventListener('click', async () => {
+    toast('Synkar…');
+    await syncPush();
+    await syncPullApply();
+    toast('Synkat ✓');
+  });
+  document.getElementById('syncOffBtn').addEventListener('click', () => {
+    if (!confirm('Koppla från moln-synk på den här enheten? Datan i molnet och på enheten finns kvar.')) return;
+    syncCfg = null; saveSyncCfg(); renderSyncPanel(); toast('Moln-synk frånkopplad');
+  });
+  // Catch changes made on the other device when returning to the app.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') syncPullApply();
+  });
+}
+
 /* ---------- Reminders: calendar (.ics) + notifications ---------- */
 function pad2(n) { return String(n).padStart(2, '0'); }
 
@@ -2039,9 +2244,11 @@ function boot() {
   setupExport();
   setupReminders();
   setupStripeImport();
+  setupCloudSync();
   registerServiceWorker();
   renderAll();
   maybeNotify(false);
+  syncPullApply();
   // First run: nudge to settings if nothing configured.
   if (!state.settings.name && !state.receipts.length) {
     toast('Välkommen! Ställ in din period under Inställningar ⚙', 3500);

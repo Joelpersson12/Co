@@ -36,9 +36,11 @@ function load() {
     return s;
   } catch { return defaultState(); }
 }
-function save() {
+function save(opts) {
+  state.updatedAt = Date.now();
   try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
   catch (e) { toast('Kunde inte spara — lagringen kan vara full.'); }
+  if (!(opts && opts.skipSync)) scheduleSyncPush();
 }
 
 /* ---------- Money & VAT helpers ---------- */
@@ -661,6 +663,180 @@ function setupPeriodSheet() {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
 }
 
+/* ---------- Cloud sync via a private Hugging Face dataset ----------
+   The user's HF token acts as the "login". It is stored separately from
+   the app data so backups and transfer files never contain it. */
+const SYNC_KEY = 'moms.sync.v1';
+let syncCfg = (() => { try { return JSON.parse(localStorage.getItem(SYNC_KEY)); } catch { return null; } })();
+let syncPushTimer = null;
+let syncBusy = false;
+
+const hfBase = () => (syncCfg && syncCfg.base) || 'https://huggingface.co';
+
+function saveSyncCfg() {
+  if (syncCfg) localStorage.setItem(SYNC_KEY, JSON.stringify(syncCfg));
+  else localStorage.removeItem(SYNC_KEY);
+}
+
+function b64encodeUtf8(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(bin);
+}
+
+async function syncPush() {
+  if (!syncCfg || syncBusy) return;
+  syncBusy = true;
+  try {
+    const json = JSON.stringify(state);
+    const nd = JSON.stringify({ key: 'header', value: { summary: 'moms sync' } }) + '\n' +
+      JSON.stringify({ key: 'file', value: { path: 'data.json', content: b64encodeUtf8(json), encoding: 'base64' } });
+    const r = await fetch(`${hfBase()}/api/datasets/${syncCfg.repo}/commit/main`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + syncCfg.token, 'Content-Type': 'application/x-ndjson' },
+      body: nd,
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    syncCfg.lastSync = Date.now(); saveSyncCfg();
+    renderSyncPanel();
+  } catch (e) {
+    renderSyncPanel('Kunde inte synka just nu — försöker igen vid nästa ändring.');
+  } finally { syncBusy = false; }
+}
+
+function scheduleSyncPush() {
+  if (!syncCfg) return;
+  clearTimeout(syncPushTimer);
+  syncPushTimer = setTimeout(syncPush, 2500);
+}
+
+async function syncPull() {
+  if (!syncCfg) return null;
+  const r = await fetch(`${hfBase()}/datasets/${syncCfg.repo}/resolve/main/data.json?ts=` + Date.now(), {
+    headers: { Authorization: 'Bearer ' + syncCfg.token },
+  });
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+
+// Pull from the cloud and apply if the cloud copy is newer than ours.
+async function syncPullApply() {
+  if (!syncCfg || syncBusy) return;
+  try {
+    const remote = await syncPull();
+    if (remote && (remote.updatedAt || 0) > (state.updatedAt || 0)) {
+      state = Object.assign(defaultState(), remote);
+      state.receipts.forEach(r => {
+        if (r.desc === 'Stripe-avgift' && r.type === 'inkop' && !r.reverse) r.reverse = true;
+      });
+      save({ skipSync: true });
+      renderAll();
+      toast('Hämtade senaste datan från molnet ✓');
+    }
+    syncCfg.lastSync = Date.now(); saveSyncCfg();
+    renderSyncPanel();
+  } catch (e) {
+    renderSyncPanel('Kunde inte nå molnet — visar det som finns på enheten.');
+  }
+}
+
+async function enableSync(token) {
+  const who = await fetch(hfBase() + '/api/whoami-v2', { headers: { Authorization: 'Bearer ' + token } });
+  if (!who.ok) throw new Error('Nyckeln verkar ogiltig — kontrollera att du kopierade hela (hf_…).');
+  const user = (await who.json()).name;
+  const repo = `${user}/moms-data`;
+  const cr = await fetch(hfBase() + '/api/repos/create', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: 'moms-data', type: 'dataset', private: true }),
+  });
+  if (!cr.ok && cr.status !== 409) {
+    const t = await cr.text().catch(() => '');
+    if (!/exist/i.test(t)) throw new Error('Kunde inte skapa molnarkivet. Har nyckeln Write-behörighet?');
+  }
+  syncCfg = Object.assign({}, syncCfg, { token, repo });
+  delete syncCfg.lastSync;
+  saveSyncCfg();
+
+  // First connect: decide direction.
+  const remote = await syncPull().catch(() => null);
+  const localHasData = state.receipts.length || state.calculations.length || state.notes;
+  if (remote && (remote.receipts || []).length && !localHasData) {
+    state = Object.assign(defaultState(), remote);
+    save({ skipSync: true }); renderAll();
+    toast('Hämtade din data från molnet ✓');
+  } else if (remote && (remote.receipts || []).length && localHasData) {
+    const useCloud = confirm('Det finns redan data i molnet OCH på den här enheten.\n\nOK = använd molnets data (ersätter enhetens)\nAvbryt = skriv över molnet med den här enhetens data');
+    if (useCloud) {
+      state = Object.assign(defaultState(), remote);
+      save({ skipSync: true }); renderAll();
+    } else {
+      await syncPush();
+    }
+  } else {
+    await syncPush();
+  }
+  syncCfg.lastSync = Date.now(); saveSyncCfg();
+}
+
+function renderSyncPanel(errMsg) {
+  const off = document.getElementById('cloudOff');
+  const on = document.getElementById('cloudOn');
+  if (!off || !on) return;
+  const active = !!syncCfg && !!syncCfg.token;
+  off.hidden = active;
+  on.hidden = !active;
+  if (active) {
+    const st = document.getElementById('syncStatus');
+    const info = document.getElementById('syncInfo');
+    if (errMsg) {
+      st.textContent = 'Moln-synk är på — men senaste försöket misslyckades';
+      info.textContent = errMsg;
+    } else {
+      st.textContent = 'Moln-synk är på ✓';
+      const when = syncCfg.lastSync ? new Date(syncCfg.lastSync) : null;
+      info.textContent = `Sparas automatiskt till ett privat arkiv (${syncCfg.repo})` +
+        (when ? ` · senast synkad ${String(when.getHours()).padStart(2,'0')}:${String(when.getMinutes()).padStart(2,'0')}` : '');
+    }
+  }
+}
+
+function setupCloudSync() {
+  renderSyncPanel();
+  document.getElementById('syncEnableBtn').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    const token = document.getElementById('hfToken').value.trim();
+    if (!token) { toast('Klistra in din nyckel först'); return; }
+    btn.disabled = true; btn.textContent = 'Kopplar…';
+    try {
+      await enableSync(token);
+      document.getElementById('hfToken').value = '';
+      renderSyncPanel();
+      toast('Moln-synk är på — allt sparas nu automatiskt 🎉', 4000);
+    } catch (err) {
+      toast(err.message || 'Något gick fel. Försök igen.', 4500);
+    } finally { btn.disabled = false; btn.textContent = 'Aktivera moln-synk'; }
+  });
+  document.getElementById('syncNowBtn').addEventListener('click', async () => {
+    toast('Synkar…');
+    await syncPush();
+    await syncPullApply();
+    toast('Synkat ✓');
+  });
+  document.getElementById('syncOffBtn').addEventListener('click', () => {
+    if (!confirm('Koppla från moln-synk på den här enheten? Datan i molnet och på enheten finns kvar.')) return;
+    syncCfg = null; saveSyncCfg(); renderSyncPanel(); toast('Moln-synk frånkopplad');
+  });
+  // Catch changes made on the other device when returning to the app.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') syncPullApply();
+  });
+}
+
 /* ---------- Reminders: calendar (.ics) + notifications ---------- */
 function pad2(n) { return String(n).padStart(2, '0'); }
 
@@ -1079,9 +1255,11 @@ function boot() {
   setupExport();
   setupReminders();
   setupStripeImport();
+  setupCloudSync();
   registerServiceWorker();
   renderAll();
   maybeNotify(false);
+  syncPullApply();
   // First run: nudge to settings if nothing configured.
   if (!state.settings.name && !state.receipts.length) {
     toast('Välkommen! Ställ in din period under Inställningar ⚙', 3500);
