@@ -1563,6 +1563,7 @@ function startBookCalc(id) {
   const c = state.calculations.find(x => x.id === id);
   if (!c || c.bookedId) return;
   formDraft = {
+    kind: 'calc-book',
     calcId: c.id,
     type: c.type, txDate: c.date, desc: c.label, gross: c.gross, rate: c.rate,
     bannerText: `📋 Bokför uträkning "${esc(c.label)}" — komplettera motpart och konto, kontrollera sedan och bokför.`,
@@ -1632,17 +1633,24 @@ function renderSettingsForm() {
 }
 
 /* =========================================================
-   Correction flow ("Rätta med ny post")
+   Correction flow ("Rätta med ny post") — a two-step wizard:
+   1) a stornering (reversal) that zeroes out the original entry
+   2) immediately after, a prefilled re-entry with the original's fields
+      (dates, amounts, party, ...) so fixing e.g. a wrong date/quarter is
+      just "change the one field and bokför" instead of retyping everything.
+   Neither step ever touches the original entry itself.
    ========================================================= */
 function correctEntry(id) {
   const orig = findLedgerById(id);
   if (!orig) return;
-  const msg = `Detta förbereder en NY post som stornerar (nollställer) verifikation #${orig.verNr}.\n\n` +
+  const msg = `Detta bokför en stornering (nollställer) verifikation #${orig.verNr}.\n\n` +
     `Den ursprungliga posten ändras eller tas INTE bort — så kräver bokföringslagen. ` +
-    `Du kontrollerar och bokför rättelsen på nästa sida.\n\nFortsätta?`;
+    `Direkt efter får du ange den korrekta versionen (t.ex. med rätt datum om den hamnade i fel kvartal).\n\nFortsätta?`;
   if (!confirm(msg)) return;
   formDraft = {
+    kind: 'correction-reversal',
     correctionOf: orig.id,
+    originalEntry: orig,
     type: orig.type,
     txDate: new Date().toISOString().slice(0, 10),
     party: orig.party,
@@ -1651,7 +1659,7 @@ function correctEntry(id) {
     rate: orig.rate,
     account: orig.account,
     reverse: orig.reverse,
-    bannerText: `🔧 Rättar verifikation #${orig.verNr} — beloppet är förifyllt med motsatt tecken (stornering). Kontrollera och bokför.`,
+    bannerText: `🔧 Steg 1/2: Nollställer verifikation #${orig.verNr} (stornering). Kontrollera och bokför.`,
   };
   navTo('kvitton');
   applyFormDraft();
@@ -1824,9 +1832,10 @@ function setupReceiptForm() {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const v = readFormInputs(form);
-    const isCorrection = !!(formDraft && formDraft.correctionOf);
+    const prevDraft = formDraft; // capture before we clear it below
+    const isCorrectionReversal = !!(prevDraft && prevDraft.kind === 'correction-reversal');
     if (v.gross === 0) { toast('Fyll i ett belopp'); return; }
-    if (!isCorrection && v.gross < 0) { toast('Beloppet ska vara positivt. Använd "Rätta" på posten du vill korrigera.'); return; }
+    if (!isCorrectionReversal && v.gross < 0) { toast('Beloppet ska vara positivt. Använd "Rätta" på posten du vill korrigera.'); return; }
     const isCapital = v.type === 'insattning' || v.type === 'uttag';
     if (!isCapital && !v.party) { toast('Motpart krävs för försäljning/inköp'); form.party.focus(); return; }
     if (!v.desc) { toast('Fyll i vad det avser'); form.desc.focus(); return; }
@@ -1836,20 +1845,18 @@ function setupReceiptForm() {
       type: v.type, txDate: v.txDate, party: v.party, desc: v.desc,
       gross: v.gross, rate: v.rate, account: v.account, reverse: v.reverse,
       ref: v.ref, fileData, note: v.note,
-      correctionOf: formDraft && formDraft.correctionOf ? formDraft.correctionOf : null,
+      correctionOf: prevDraft && prevDraft.correctionOf ? prevDraft.correctionOf : null,
     });
 
-    if (formDraft && formDraft.calcId) {
-      const c = state.calculations.find(x => x.id === formDraft.calcId);
+    if (prevDraft && prevDraft.calcId) {
+      const c = state.calculations.find(x => x.id === prevDraft.calcId);
       if (c) c.bookedId = entry.id;
     }
-    const wasDraft = !!formDraft;
     formDraft = null;
     document.getElementById('correctionBanner').hidden = true;
 
     save();
     form.reset();
-    dateEl.value = new Date().toISOString().slice(0, 10);
     updateFormForType();
     updateCalcPreview();
 
@@ -1858,7 +1865,31 @@ function setupReceiptForm() {
     state.activePeriod = (k === currentPeriodKey(state.settings.period)) ? null : k;
     save();
     renderAll();
-    toast(`Verifikation #${entry.verNr} bokförd${wasDraft ? '' : ''} ✓`);
+
+    if (isCorrectionReversal && prevDraft.originalEntry) {
+      // Chain straight into step 2: prefill a normal, positive re-entry with
+      // the original's fields so the user only has to fix what was wrong
+      // (e.g. the date) instead of retyping everything.
+      const orig = prevDraft.originalEntry;
+      toast(`Steg 1/2 klart: stornering bokförd som #${entry.verNr}. Nu: ange rätt version.`, 4000);
+      formDraft = {
+        kind: 'correction-reentry',
+        correctionOf: orig.id,
+        type: orig.type,
+        txDate: orig.txDate,
+        party: orig.party,
+        desc: orig.desc,
+        gross: orig.gross,
+        rate: orig.rate,
+        account: orig.account,
+        reverse: orig.reverse,
+        bannerText: `📋 Steg 2/2: Innehållet från verifikation #${orig.verNr} är förifyllt. Ändra det som var fel (t.ex. datumet) och bokför. Steg 1 (stornering) är redan bokfört och kan inte ångras här — "Avbryt" hoppar bara över steg 2.`,
+      };
+      applyFormDraft();
+    } else {
+      dateEl.value = new Date().toISOString().slice(0, 10);
+      toast(`Verifikation #${entry.verNr} bokförd ✓`);
+    }
   });
   form.addEventListener('reset', () => {
     formDraft = null;
