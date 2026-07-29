@@ -227,6 +227,7 @@ h3 { font-size: 1.05rem; font-weight: 700; }
 .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
 .field label { font-weight: 600; font-size: 0.9rem; color: var(--text); }
 .field-help { font-size: 0.82rem; color: var(--text-faint); }
+.field-help strong { color: var(--brand); font-weight: 700; }
 input[type="text"], input[type="number"], input[type="date"], input[type="password"], select, textarea {
   font-family: inherit; font-size: 1rem; color: var(--text);
   background: var(--surface); border: 1px solid var(--line-strong); border-radius: 11px;

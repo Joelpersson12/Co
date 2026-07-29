@@ -739,6 +739,7 @@ function readFormInputs(form) {
 }
 
 function updateCalcPreview() {
+  updateDateConfirm('rfDate', 'rfDateConfirm');
   const form = document.getElementById('receiptForm');
   const v = readFormInputs(form);
   const isCapital = v.type === 'insattning' || v.type === 'uttag';
@@ -826,6 +827,7 @@ function setupReceiptForm() {
       applyFormDraft();
     } else {
       dateEl.value = new Date().toISOString().slice(0, 10);
+      updateCalcPreview();
       toast(`Verifikation #${entry.verNr} bokförd ✓`);
     }
   });
@@ -852,6 +854,7 @@ function setupCalculator() {
     date: dateEl.value || new Date().toISOString().slice(0, 10),
   });
   const update = () => {
+    updateDateConfirm('cDate', 'cDateConfirm');
     const v = read();
     const { net, vat } = vatFromGross(v.gross, v.rate);
     document.getElementById('cExcl').textContent = kr(net);
@@ -1675,6 +1678,23 @@ function setupExport() {
 function esc(s) { return String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 function csvCell(s) { s = String(s); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
 function fmtDate(iso) { const d = new Date(iso + 'T00:00:00'); return `${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)}`; }
+
+// Full, unambiguous Swedish date readback — shown next to date inputs so a
+// misread native date-picker (which renders in the OS/browser locale, e.g.
+// MM/DD/YYYY) never silently books the wrong day/quarter without the user
+// noticing.
+function fmtDateLong(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T00:00:00');
+  if (isNaN(d)) return '';
+  return `→ ${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+function updateDateConfirm(dateInputId, confirmId) {
+  const confirmEl = document.getElementById(confirmId);
+  const dateEl = document.getElementById(dateInputId);
+  if (!confirmEl || !dateEl) return;
+  confirmEl.textContent = fmtDateLong(dateEl.value);
+}
 let toastTimer;
 function toast(msg, ms = 2200) {
   const t = document.getElementById('toast');

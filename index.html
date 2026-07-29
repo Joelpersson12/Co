@@ -196,7 +196,7 @@
               <div class="field">
                 <label for="rfDate">Transaktionsdatum</label>
                 <input type="date" id="rfDate" name="date" required />
-                <p class="field-help">Datumet affärshändelsen skedde (t.ex. betaldatum).</p>
+                <p class="field-help">Datumet affärshändelsen skedde (t.ex. betaldatum). <strong id="rfDateConfirm"></strong></p>
               </div>
               <div class="field" id="rfPartyField">
                 <label for="rfParty">Motpart <span class="muted small">(kund/leverantör)</span></label>
@@ -213,7 +213,7 @@
               <div class="field">
                 <label for="rfAmount" id="rfAmountLabel">Bruttobelopp (inkl. moms)</label>
                 <div class="input-money">
-                  <input type="number" id="rfAmount" name="amount" inputmode="decimal" step="0.01" placeholder="0,00" required />
+                  <input type="text" id="rfAmount" name="amount" inputmode="decimal" placeholder="0,00" required />
                   <span>kr</span>
                 </div>
               </div>
@@ -291,7 +291,7 @@
               <div class="field">
                 <label for="cDate">Datum</label>
                 <input type="date" id="cDate" />
-                <p class="field-help">Datumet du betalade eller fick betalt.</p>
+                <p class="field-help">Datumet du betalade eller fick betalt. <strong id="cDateConfirm"></strong></p>
               </div>
             </div>
 
@@ -310,7 +310,7 @@
               <div class="field">
                 <label for="cAmount">Bruttobelopp (inkl. moms)</label>
                 <div class="input-money">
-                  <input type="number" id="cAmount" inputmode="decimal" step="0.01" min="0" placeholder="0,00" />
+                  <input type="text" id="cAmount" inputmode="decimal" placeholder="0,00" />
                   <span>kr</span>
                 </div>
               </div>
