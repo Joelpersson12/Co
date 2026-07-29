@@ -32,6 +32,7 @@
     <symbol id="i-calc" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="8" y="6" width="8" height="3" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M9 13h0M12.5 13h0M16 13h0M9 16h0M12.5 16h0M16 16h0" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
     <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 21a2 2 0 004 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
     <symbol id="i-cal" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4 9h16M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-correct" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 1 3 6.7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M3 21v-5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   </svg>
 
   <div class="app">
@@ -115,7 +116,7 @@
               <div class="tile-val" id="sumIng">0 kr</div>
             </div>
             <div class="tile">
-              <span class="tile-label">Kvitton i perioden</span>
+              <span class="tile-label">Verifikationer i perioden</span>
               <div class="tile-val" id="sumCount">0</div>
             </div>
           </div>
@@ -130,15 +131,15 @@
           </div>
 
           <button class="fab-inline btn-primary" data-goto="kvitton">
-            <svg class="ic"><use href="#i-plus"/></svg> Lägg till kvitto
+            <svg class="ic"><use href="#i-plus"/></svg> Ny verifikation
           </button>
         </section>
 
         <!-- ===================== KVITTON ===================== -->
         <section class="view" id="view-kvitton" hidden>
           <div class="view-head">
-            <h1>Kvitton</h1>
-            <p class="muted">Lägg in allt du köpt och sålt. Momsen räknas ut åt dig.</p>
+            <h1>Verifikationer</h1>
+            <p class="muted">Kvitton, fakturor och andra affärshändelser. Varje sparad post är slutgiltig — fel rättas med en ny post.</p>
           </div>
 
           <details class="panel import-panel" id="stripeImport">
@@ -174,27 +175,31 @@
           </details>
 
           <form class="panel form-card" id="receiptForm">
-            <h2 class="form-title">Nytt kvitto</h2>
+            <h2 class="form-title">Ny verifikation</h2>
+            <div class="correction-banner" id="correctionBanner" hidden></div>
 
-            <div class="seg" role="radiogroup" aria-label="Typ av händelse">
-              <label class="seg-opt">
-                <input type="radio" name="type" value="inkop" checked />
-                <span>Utgift / Inköp</span>
-              </label>
-              <label class="seg-opt">
-                <input type="radio" name="type" value="forsaljning" />
-                <span>Inkomst / Försäljning</span>
-              </label>
+            <div class="field">
+              <label for="rfType">Typ av post</label>
+              <select id="rfType" name="type">
+                <optgroup label="Affärshändelse">
+                  <option value="inkop" selected>Inköp / Utgift (ingående moms)</option>
+                  <option value="forsaljning">Försäljning / Inkomst (utgående moms)</option>
+                </optgroup>
+                <optgroup label="Eget kapital (påverkar inte moms eller resultat)">
+                  <option value="insattning">Egen insättning</option>
+                  <option value="uttag">Eget uttag</option>
+                </optgroup>
+              </select>
             </div>
 
             <div class="grid-2">
               <div class="field">
-                <label for="rfDate">Datum</label>
+                <label for="rfDate">Transaktionsdatum</label>
                 <input type="date" id="rfDate" name="date" required />
-                <p class="field-help">Datumet du betalade eller fick betalt.</p>
+                <p class="field-help">Datumet affärshändelsen skedde (t.ex. betaldatum).</p>
               </div>
-              <div class="field">
-                <label for="rfParty">Motpart <span class="muted small">(vem)</span></label>
+              <div class="field" id="rfPartyField">
+                <label for="rfParty">Motpart <span class="muted small">(kund/leverantör)</span></label>
                 <input type="text" id="rfParty" name="party" placeholder="t.ex. Bauhaus" required autocomplete="off" />
               </div>
             </div>
@@ -204,22 +209,15 @@
               <input type="text" id="rfDesc" name="desc" placeholder="t.ex. Material till jobb" required autocomplete="off" />
             </div>
 
-            <div class="grid-3">
+            <div class="grid-3" id="rfAmountRow">
               <div class="field">
-                <label for="rfAmount">Belopp</label>
+                <label for="rfAmount" id="rfAmountLabel">Bruttobelopp (inkl. moms)</label>
                 <div class="input-money">
-                  <input type="number" id="rfAmount" name="amount" inputmode="decimal" step="0.01" min="0" placeholder="0,00" required />
+                  <input type="number" id="rfAmount" name="amount" inputmode="decimal" step="0.01" placeholder="0,00" required />
                   <span>kr</span>
                 </div>
               </div>
-              <div class="field">
-                <label for="rfInclusive">Beloppet är</label>
-                <select id="rfInclusive" name="inclusive">
-                  <option value="inkl" selected>Inkl. moms</option>
-                  <option value="exkl">Exkl. moms</option>
-                </select>
-              </div>
-              <div class="field">
+              <div class="field" id="rfRateField">
                 <label for="rfRate">Momssats</label>
                 <select id="rfRate" name="rate">
                   <option value="25" selected>25 %</option>
@@ -228,34 +226,49 @@
                   <option value="0">0 % / momsfritt</option>
                 </select>
               </div>
+              <div class="field" id="rfAccountField">
+                <label for="rfAccount">Betalsätt / konto</label>
+                <select id="rfAccount" name="account">
+                  <option value="firmakonto" selected>Firmakonto</option>
+                  <option value="kontant">Kontant</option>
+                  <option value="privat">Egen insättning (jag betalade privat)</option>
+                  <option value="annat">Annat</option>
+                </select>
+              </div>
             </div>
 
-            <div class="calc-preview" id="calcPreview" aria-live="polite">
-              <span>Moms: <strong id="calcVat">0 kr</strong></span>
-              <span>Exkl. moms: <strong id="calcExcl">0 kr</strong></span>
-              <span>Totalt: <strong id="calcTotal">0 kr</strong></span>
-            </div>
+            <label class="check-inline" id="rfReverseField">
+              <input type="checkbox" id="rfReverse" />
+              Inköp av tjänst från annat EU-land (t.ex. Stripe, Google Ads) — omvänd skattskyldighet
+            </label>
+
+            <div class="calc-preview" id="calcPreview" aria-live="polite"></div>
 
             <div class="grid-2">
+              <div class="field">
+                <label for="rfRef">Referens till underlag <span class="muted small">(valfritt)</span></label>
+                <input type="text" id="rfRef" name="ref" placeholder="t.ex. kvitto_2026-07-01.pdf eller länk" autocomplete="off" />
+              </div>
               <div class="field">
                 <label for="rfFile">Bild på kvitto <span class="muted small">(valfritt)</span></label>
                 <input type="file" id="rfFile" name="file" accept="image/*" capture="environment" />
               </div>
-              <div class="field">
-                <label for="rfNote">Fri text <span class="muted small">(valfritt)</span></label>
-                <input type="text" id="rfNote" name="note" placeholder="Egen anteckning" autocomplete="off" />
-              </div>
+            </div>
+
+            <div class="field">
+              <label for="rfNote">Fri text / anteckning <span class="muted small">(valfritt)</span></label>
+              <input type="text" id="rfNote" name="note" placeholder="Egen anteckning" autocomplete="off" />
             </div>
 
             <div class="form-actions">
-              <button type="submit" class="btn-primary"><svg class="ic"><use href="#i-check"/></svg> Spara kvitto</button>
+              <button type="submit" class="btn-primary"><svg class="ic"><use href="#i-check"/></svg> Bokför verifikation</button>
               <button type="reset" class="btn-ghost">Rensa</button>
             </div>
           </form>
 
           <div class="panel">
             <div class="panel-head">
-              <h2>Sparade kvitton</h2>
+              <h2>Sparade verifikationer</h2>
               <span class="muted small" id="receiptCount">0 st</span>
             </div>
             <div id="receiptList" class="receipt-list"></div>
@@ -266,7 +279,7 @@
         <section class="view" id="view-kalkylator" hidden>
           <div class="view-head">
             <h1>Momskalkylator</h1>
-            <p class="muted">Skriv ett belopp så räknar jag ut momsen direkt. Spara det du vill minnas.</p>
+            <p class="muted">Baklängesmoms: skriv bruttobeloppet (det totala priset) så räknar jag ut netto och moms.</p>
           </div>
 
           <div class="panel form-card">
@@ -293,20 +306,13 @@
               </label>
             </div>
 
-            <div class="grid-3">
+            <div class="grid-2">
               <div class="field">
-                <label for="cAmount">Belopp</label>
+                <label for="cAmount">Bruttobelopp (inkl. moms)</label>
                 <div class="input-money">
                   <input type="number" id="cAmount" inputmode="decimal" step="0.01" min="0" placeholder="0,00" />
                   <span>kr</span>
                 </div>
-              </div>
-              <div class="field">
-                <label for="cIncl">Beloppet är</label>
-                <select id="cIncl">
-                  <option value="exkl" selected>Exkl. moms</option>
-                  <option value="inkl">Inkl. moms</option>
-                </select>
               </div>
               <div class="field">
                 <label for="cRate">Momssats</label>
@@ -320,9 +326,9 @@
           </div>
 
           <div class="result-card" id="calcResult" aria-live="polite">
-            <div class="result-row"><span>Exkl. moms</span><strong id="cExcl">0 kr</strong></div>
+            <div class="result-row"><span>Bruttobelopp</span><strong id="cTotal">0 kr</strong></div>
             <div class="result-row"><span>Moms <em id="cRateLbl">(25 %)</em></span><strong id="cVat">0 kr</strong></div>
-            <div class="result-row total"><span>Totalt inkl. moms</span><strong id="cTotal">0 kr</strong></div>
+            <div class="result-row total"><span>Nettobelopp</span><strong id="cExcl">0 kr</strong></div>
           </div>
 
           <div class="result-context is-pay" id="cContext">
@@ -348,7 +354,32 @@
             <p class="muted">Summorna att föra in i Skatteverkets momsdeklaration för perioden.</p>
           </div>
 
+          <div class="panel" id="summaryPanel">
+            <div class="panel-head">
+              <h2 id="sumRangeLabel">Sammanställning</h2>
+            </div>
+            <div class="report-toggle" role="tablist" aria-label="Välj period för sammanställning">
+              <button type="button" data-range="period" class="active">Aktuell period</button>
+              <button type="button" data-range="year">Helår</button>
+              <button type="button" data-range="all">Allt</button>
+            </div>
+            <div class="tiles">
+              <div class="tile"><span class="tile-label">Intäkter, netto</span><div class="tile-val" id="sRevenue">0 kr</div></div>
+              <div class="tile"><span class="tile-label">Kostnader, netto</span><div class="tile-val" id="sCost">0 kr</div></div>
+              <div class="tile"><span class="tile-label">Resultat</span><div class="tile-val" id="sResult">0 kr</div></div>
+              <div class="tile"><span class="tile-label">Utgående moms</span><div class="tile-val" id="sUtg">0 kr</div></div>
+              <div class="tile"><span class="tile-label">Ingående moms</span><div class="tile-val" id="sIng">0 kr</div></div>
+              <div class="tile"><span class="tile-label">Moms, netto</span><div class="tile-val small-val" id="sToPay">0 kr</div></div>
+              <div class="tile"><span class="tile-label">Egna insättningar</span><div class="tile-val" id="sInsattning">0 kr</div></div>
+              <div class="tile"><span class="tile-label">Egna uttag</span><div class="tile-val" id="sUttag">0 kr</div></div>
+            </div>
+            <p class="muted small">Resultatet är informativt (intäkter minus kostnader) — inte en skatteberäkning. Egna insättningar/uttag påverkar varken moms eller resultat.</p>
+          </div>
+
           <div class="panel">
+            <div class="panel-head">
+              <h2>Momsrutor för aktuell period</h2>
+            </div>
             <table class="decl-table">
               <thead><tr><th>Ruta</th><th>Avser</th><th class="num">Belopp</th></tr></thead>
               <tbody id="declRows"></tbody>
@@ -370,11 +401,21 @@
 
           <div class="panel share-panel">
             <h2>Skicka till din revisor</h2>
-            <p class="muted small">Hela kvartalet samlas i <strong>en fil</strong> — alla kvitton plus momssummorna ovan. Du kan sms:a eller mejla den direkt.</p>
+            <p class="muted small">Hela perioden samlas i <strong>en fil</strong> — alla verifikationer plus momssummorna ovan. Du kan sms:a eller mejla den direkt.</p>
             <div class="form-actions">
-              <button class="btn-primary js-share"><svg class="ic"><use href="#i-doc"/></svg> Skicka hela kvartalet</button>
+              <button class="btn-primary js-share"><svg class="ic"><use href="#i-doc"/></svg> Skicka denna period</button>
               <button class="btn-ghost" id="downloadBtn">Ladda ner som fil</button>
             </div>
+          </div>
+
+          <div class="panel export-panel">
+            <h2>Exportera</h2>
+            <p class="muted small">Exportera allt du bokfört, för eget bruk eller för att importera i annat program.</p>
+            <div class="form-actions">
+              <button class="btn-ghost" id="exportAllCsvBtn"><svg class="ic"><use href="#i-doc"/></svg> Exportera ALLA poster (CSV)</button>
+              <button class="btn-ghost" id="exportSieBtn"><svg class="ic"><use href="#i-doc"/></svg> Exportera SIE-fil</button>
+            </div>
+            <p class="muted small">SIE-filen speglar valt intervall ovan (Aktuell period/Helår/Allt) enligt en förenklad kontoplan — kontrollera kontona innan du importerar i Bokio eller liknande.</p>
           </div>
         </section>
 

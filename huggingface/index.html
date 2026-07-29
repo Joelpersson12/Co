@@ -277,6 +277,32 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
 .import-help { margin: 12px 0 16px; line-height: 1.6; }
 .check-inline { display: flex; align-items: center; gap: 9px; font-size: 0.92rem; font-weight: 500; color: var(--text); margin-bottom: 16px; cursor: pointer; }
 .check-inline input { width: 18px; height: 18px; accent-color: var(--brand); }
+.check-inline[hidden] { display: none; }
+
+.correction-banner {
+  background: linear-gradient(120deg, rgba(109,92,255,0.1), rgba(255,92,168,0.08));
+  border: 1px solid var(--line-strong); border-radius: 12px;
+  padding: 14px 16px; margin-bottom: 16px; font-size: 0.92rem; color: var(--text); line-height: 1.5;
+}
+.corr-cancel {
+  margin-top: 8px; background: none; border: 1px solid var(--line-strong); color: var(--text-dim);
+  font-family: inherit; font-weight: 600; font-size: 0.85rem; padding: 6px 14px; border-radius: 8px; cursor: pointer;
+}
+.corr-cancel:hover { border-color: var(--red); color: var(--red); }
+
+.field.is-optional label { color: var(--text-dim); }
+
+.report-toggle { display: flex; gap: 8px; margin-bottom: 16px; }
+.report-toggle button {
+  flex: 1; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line-strong);
+  background: var(--surface); font-family: inherit; font-weight: 600; font-size: 0.88rem; color: var(--text-dim); cursor: pointer;
+  transition: all 0.18s var(--ease);
+}
+.report-toggle button.active { background: linear-gradient(120deg, rgba(109,92,255,0.14), rgba(255,92,168,0.10)); border-color: var(--brand); color: var(--brand); }
+.tile-val.small-val { font-size: 1.15rem; }
+
+.export-panel h2 { margin-bottom: 4px; }
+.export-panel p { margin-bottom: 14px; }
 .import-preview {
   background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px;
   padding: 16px 18px; margin-bottom: 16px; font-size: 0.92rem;
@@ -307,12 +333,18 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
 .receipt-tag { font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; }
 .tag-in { background: var(--green-bg); color: var(--green); }
 .tag-out { background: var(--blue-bg); color: var(--blue); }
+.tag-capital { background: var(--surface-2); color: var(--text-dim); border: 1px solid var(--line-strong); }
+.receipt-ref { font-size: 0.78rem; color: var(--text-faint); margin-top: 2px; }
+.corr-tag { font-size: 0.7rem; font-weight: 700; padding: 2px 7px; border-radius: 6px; white-space: nowrap; }
+.corr-of { background: var(--amber-bg); color: var(--amber); }
+.corr-by { background: var(--surface-2); color: var(--text-faint); border: 1px solid var(--line-strong); }
 .receipt-amt { text-align: right; flex: none; }
 .receipt-amt .a { font-weight: 800; font-variant-numeric: tabular-nums; }
 .receipt-amt .v { font-size: 0.78rem; color: var(--text-faint); }
-.receipt-del { background: none; border: 0; color: var(--text-faint); cursor: pointer; padding: 6px; border-radius: 8px; }
+.receipt-del, .receipt-correct { background: none; border: 0; color: var(--text-faint); cursor: pointer; padding: 6px; border-radius: 8px; }
 .receipt-del:hover { color: var(--red); background: var(--red-bg); }
-.receipt-del .ic { width: 18px; height: 18px; }
+.receipt-correct:hover { color: var(--brand); background: rgba(109,92,255,0.1); }
+.receipt-del .ic, .receipt-correct .ic { width: 18px; height: 18px; }
 
 .empty { text-align: center; padding: 36px 20px; color: var(--text-faint); }
 
@@ -496,6 +528,7 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
     <symbol id="i-calc" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="8" y="6" width="8" height="3" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M9 13h0M12.5 13h0M16 13h0M9 16h0M12.5 16h0M16 16h0" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
     <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 21a2 2 0 004 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
     <symbol id="i-cal" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4 9h16M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-correct" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 1 3 6.7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M3 21v-5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   </svg>
 
   <div class="app">
@@ -579,7 +612,7 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
               <div class="tile-val" id="sumIng">0 kr</div>
             </div>
             <div class="tile">
-              <span class="tile-label">Kvitton i perioden</span>
+              <span class="tile-label">Verifikationer i perioden</span>
               <div class="tile-val" id="sumCount">0</div>
             </div>
           </div>
@@ -594,15 +627,15 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
           </div>
 
           <button class="fab-inline btn-primary" data-goto="kvitton">
-            <svg class="ic"><use href="#i-plus"/></svg> Lägg till kvitto
+            <svg class="ic"><use href="#i-plus"/></svg> Ny verifikation
           </button>
         </section>
 
         <!-- ===================== KVITTON ===================== -->
         <section class="view" id="view-kvitton" hidden>
           <div class="view-head">
-            <h1>Kvitton</h1>
-            <p class="muted">Lägg in allt du köpt och sålt. Momsen räknas ut åt dig.</p>
+            <h1>Verifikationer</h1>
+            <p class="muted">Kvitton, fakturor och andra affärshändelser. Varje sparad post är slutgiltig — fel rättas med en ny post.</p>
           </div>
 
           <details class="panel import-panel" id="stripeImport">
@@ -638,27 +671,31 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
           </details>
 
           <form class="panel form-card" id="receiptForm">
-            <h2 class="form-title">Nytt kvitto</h2>
+            <h2 class="form-title">Ny verifikation</h2>
+            <div class="correction-banner" id="correctionBanner" hidden></div>
 
-            <div class="seg" role="radiogroup" aria-label="Typ av händelse">
-              <label class="seg-opt">
-                <input type="radio" name="type" value="inkop" checked />
-                <span>Utgift / Inköp</span>
-              </label>
-              <label class="seg-opt">
-                <input type="radio" name="type" value="forsaljning" />
-                <span>Inkomst / Försäljning</span>
-              </label>
+            <div class="field">
+              <label for="rfType">Typ av post</label>
+              <select id="rfType" name="type">
+                <optgroup label="Affärshändelse">
+                  <option value="inkop" selected>Inköp / Utgift (ingående moms)</option>
+                  <option value="forsaljning">Försäljning / Inkomst (utgående moms)</option>
+                </optgroup>
+                <optgroup label="Eget kapital (påverkar inte moms eller resultat)">
+                  <option value="insattning">Egen insättning</option>
+                  <option value="uttag">Eget uttag</option>
+                </optgroup>
+              </select>
             </div>
 
             <div class="grid-2">
               <div class="field">
-                <label for="rfDate">Datum</label>
+                <label for="rfDate">Transaktionsdatum</label>
                 <input type="date" id="rfDate" name="date" required />
-                <p class="field-help">Datumet du betalade eller fick betalt.</p>
+                <p class="field-help">Datumet affärshändelsen skedde (t.ex. betaldatum).</p>
               </div>
-              <div class="field">
-                <label for="rfParty">Motpart <span class="muted small">(vem)</span></label>
+              <div class="field" id="rfPartyField">
+                <label for="rfParty">Motpart <span class="muted small">(kund/leverantör)</span></label>
                 <input type="text" id="rfParty" name="party" placeholder="t.ex. Bauhaus" required autocomplete="off" />
               </div>
             </div>
@@ -668,22 +705,15 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
               <input type="text" id="rfDesc" name="desc" placeholder="t.ex. Material till jobb" required autocomplete="off" />
             </div>
 
-            <div class="grid-3">
+            <div class="grid-3" id="rfAmountRow">
               <div class="field">
-                <label for="rfAmount">Belopp</label>
+                <label for="rfAmount" id="rfAmountLabel">Bruttobelopp (inkl. moms)</label>
                 <div class="input-money">
-                  <input type="number" id="rfAmount" name="amount" inputmode="decimal" step="0.01" min="0" placeholder="0,00" required />
+                  <input type="number" id="rfAmount" name="amount" inputmode="decimal" step="0.01" placeholder="0,00" required />
                   <span>kr</span>
                 </div>
               </div>
-              <div class="field">
-                <label for="rfInclusive">Beloppet är</label>
-                <select id="rfInclusive" name="inclusive">
-                  <option value="inkl" selected>Inkl. moms</option>
-                  <option value="exkl">Exkl. moms</option>
-                </select>
-              </div>
-              <div class="field">
+              <div class="field" id="rfRateField">
                 <label for="rfRate">Momssats</label>
                 <select id="rfRate" name="rate">
                   <option value="25" selected>25 %</option>
@@ -692,34 +722,49 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
                   <option value="0">0 % / momsfritt</option>
                 </select>
               </div>
+              <div class="field" id="rfAccountField">
+                <label for="rfAccount">Betalsätt / konto</label>
+                <select id="rfAccount" name="account">
+                  <option value="firmakonto" selected>Firmakonto</option>
+                  <option value="kontant">Kontant</option>
+                  <option value="privat">Egen insättning (jag betalade privat)</option>
+                  <option value="annat">Annat</option>
+                </select>
+              </div>
             </div>
 
-            <div class="calc-preview" id="calcPreview" aria-live="polite">
-              <span>Moms: <strong id="calcVat">0 kr</strong></span>
-              <span>Exkl. moms: <strong id="calcExcl">0 kr</strong></span>
-              <span>Totalt: <strong id="calcTotal">0 kr</strong></span>
-            </div>
+            <label class="check-inline" id="rfReverseField">
+              <input type="checkbox" id="rfReverse" />
+              Inköp av tjänst från annat EU-land (t.ex. Stripe, Google Ads) — omvänd skattskyldighet
+            </label>
+
+            <div class="calc-preview" id="calcPreview" aria-live="polite"></div>
 
             <div class="grid-2">
+              <div class="field">
+                <label for="rfRef">Referens till underlag <span class="muted small">(valfritt)</span></label>
+                <input type="text" id="rfRef" name="ref" placeholder="t.ex. kvitto_2026-07-01.pdf eller länk" autocomplete="off" />
+              </div>
               <div class="field">
                 <label for="rfFile">Bild på kvitto <span class="muted small">(valfritt)</span></label>
                 <input type="file" id="rfFile" name="file" accept="image/*" capture="environment" />
               </div>
-              <div class="field">
-                <label for="rfNote">Fri text <span class="muted small">(valfritt)</span></label>
-                <input type="text" id="rfNote" name="note" placeholder="Egen anteckning" autocomplete="off" />
-              </div>
+            </div>
+
+            <div class="field">
+              <label for="rfNote">Fri text / anteckning <span class="muted small">(valfritt)</span></label>
+              <input type="text" id="rfNote" name="note" placeholder="Egen anteckning" autocomplete="off" />
             </div>
 
             <div class="form-actions">
-              <button type="submit" class="btn-primary"><svg class="ic"><use href="#i-check"/></svg> Spara kvitto</button>
+              <button type="submit" class="btn-primary"><svg class="ic"><use href="#i-check"/></svg> Bokför verifikation</button>
               <button type="reset" class="btn-ghost">Rensa</button>
             </div>
           </form>
 
           <div class="panel">
             <div class="panel-head">
-              <h2>Sparade kvitton</h2>
+              <h2>Sparade verifikationer</h2>
               <span class="muted small" id="receiptCount">0 st</span>
             </div>
             <div id="receiptList" class="receipt-list"></div>
@@ -730,7 +775,7 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
         <section class="view" id="view-kalkylator" hidden>
           <div class="view-head">
             <h1>Momskalkylator</h1>
-            <p class="muted">Skriv ett belopp så räknar jag ut momsen direkt. Spara det du vill minnas.</p>
+            <p class="muted">Baklängesmoms: skriv bruttobeloppet (det totala priset) så räknar jag ut netto och moms.</p>
           </div>
 
           <div class="panel form-card">
@@ -757,20 +802,13 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
               </label>
             </div>
 
-            <div class="grid-3">
+            <div class="grid-2">
               <div class="field">
-                <label for="cAmount">Belopp</label>
+                <label for="cAmount">Bruttobelopp (inkl. moms)</label>
                 <div class="input-money">
                   <input type="number" id="cAmount" inputmode="decimal" step="0.01" min="0" placeholder="0,00" />
                   <span>kr</span>
                 </div>
-              </div>
-              <div class="field">
-                <label for="cIncl">Beloppet är</label>
-                <select id="cIncl">
-                  <option value="exkl" selected>Exkl. moms</option>
-                  <option value="inkl">Inkl. moms</option>
-                </select>
               </div>
               <div class="field">
                 <label for="cRate">Momssats</label>
@@ -784,9 +822,9 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
           </div>
 
           <div class="result-card" id="calcResult" aria-live="polite">
-            <div class="result-row"><span>Exkl. moms</span><strong id="cExcl">0 kr</strong></div>
+            <div class="result-row"><span>Bruttobelopp</span><strong id="cTotal">0 kr</strong></div>
             <div class="result-row"><span>Moms <em id="cRateLbl">(25 %)</em></span><strong id="cVat">0 kr</strong></div>
-            <div class="result-row total"><span>Totalt inkl. moms</span><strong id="cTotal">0 kr</strong></div>
+            <div class="result-row total"><span>Nettobelopp</span><strong id="cExcl">0 kr</strong></div>
           </div>
 
           <div class="result-context is-pay" id="cContext">
@@ -812,7 +850,32 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
             <p class="muted">Summorna att föra in i Skatteverkets momsdeklaration för perioden.</p>
           </div>
 
+          <div class="panel" id="summaryPanel">
+            <div class="panel-head">
+              <h2 id="sumRangeLabel">Sammanställning</h2>
+            </div>
+            <div class="report-toggle" role="tablist" aria-label="Välj period för sammanställning">
+              <button type="button" data-range="period" class="active">Aktuell period</button>
+              <button type="button" data-range="year">Helår</button>
+              <button type="button" data-range="all">Allt</button>
+            </div>
+            <div class="tiles">
+              <div class="tile"><span class="tile-label">Intäkter, netto</span><div class="tile-val" id="sRevenue">0 kr</div></div>
+              <div class="tile"><span class="tile-label">Kostnader, netto</span><div class="tile-val" id="sCost">0 kr</div></div>
+              <div class="tile"><span class="tile-label">Resultat</span><div class="tile-val" id="sResult">0 kr</div></div>
+              <div class="tile"><span class="tile-label">Utgående moms</span><div class="tile-val" id="sUtg">0 kr</div></div>
+              <div class="tile"><span class="tile-label">Ingående moms</span><div class="tile-val" id="sIng">0 kr</div></div>
+              <div class="tile"><span class="tile-label">Moms, netto</span><div class="tile-val small-val" id="sToPay">0 kr</div></div>
+              <div class="tile"><span class="tile-label">Egna insättningar</span><div class="tile-val" id="sInsattning">0 kr</div></div>
+              <div class="tile"><span class="tile-label">Egna uttag</span><div class="tile-val" id="sUttag">0 kr</div></div>
+            </div>
+            <p class="muted small">Resultatet är informativt (intäkter minus kostnader) — inte en skatteberäkning. Egna insättningar/uttag påverkar varken moms eller resultat.</p>
+          </div>
+
           <div class="panel">
+            <div class="panel-head">
+              <h2>Momsrutor för aktuell period</h2>
+            </div>
             <table class="decl-table">
               <thead><tr><th>Ruta</th><th>Avser</th><th class="num">Belopp</th></tr></thead>
               <tbody id="declRows"></tbody>
@@ -834,11 +897,21 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
 
           <div class="panel share-panel">
             <h2>Skicka till din revisor</h2>
-            <p class="muted small">Hela kvartalet samlas i <strong>en fil</strong> — alla kvitton plus momssummorna ovan. Du kan sms:a eller mejla den direkt.</p>
+            <p class="muted small">Hela perioden samlas i <strong>en fil</strong> — alla verifikationer plus momssummorna ovan. Du kan sms:a eller mejla den direkt.</p>
             <div class="form-actions">
-              <button class="btn-primary js-share"><svg class="ic"><use href="#i-doc"/></svg> Skicka hela kvartalet</button>
+              <button class="btn-primary js-share"><svg class="ic"><use href="#i-doc"/></svg> Skicka denna period</button>
               <button class="btn-ghost" id="downloadBtn">Ladda ner som fil</button>
             </div>
+          </div>
+
+          <div class="panel export-panel">
+            <h2>Exportera</h2>
+            <p class="muted small">Exportera allt du bokfört, för eget bruk eller för att importera i annat program.</p>
+            <div class="form-actions">
+              <button class="btn-ghost" id="exportAllCsvBtn"><svg class="ic"><use href="#i-doc"/></svg> Exportera ALLA poster (CSV)</button>
+              <button class="btn-ghost" id="exportSieBtn"><svg class="ic"><use href="#i-doc"/></svg> Exportera SIE-fil</button>
+            </div>
+            <p class="muted small">SIE-filen speglar valt intervall ovan (Aktuell period/Helår/Allt) enligt en förenklad kontoplan — kontrollera kontona innan du importerar i Bokio eller liknande.</p>
           </div>
         </section>
 
@@ -988,43 +1061,125 @@ input[type="file"] { padding: 9px; font-size: 0.88rem; }
 
   <script>
 /* =========================================================
-   Moms — enkel momskoll. All data lokalt i webbläsaren.
+   Moms — bokföringsunderlag för enskild firma.
+   All data lokalt i webbläsaren (+ valfri molnsynk). Sparade
+   verifikationer är ORÖRLIGA: fel rättas med en ny post som
+   hänvisar till den felaktiga (stornering), aldrig genom att
+   ändra eller radera en tidigare post.
    ========================================================= */
 'use strict';
 
 const STORE_KEY = 'moms.data.v1';
 const MONTHS = ['januari','februari','mars','april','maj','juni','juli','augusti','september','oktober','november','december'];
-const VAT_RATES = [25, 12, 6, 0];
+
+const ACCOUNTS = {
+  firmakonto: 'Firmakonto',
+  kontant: 'Kontant',
+  privat: 'Egen insättning (jag betalade privat)',
+  annat: 'Annat',
+};
+const TYPE_LABEL = {
+  forsaljning: 'Försäljning',
+  inkop: 'Inköp',
+  insattning: 'Egen insättning',
+  uttag: 'Eget uttag',
+};
 
 /* ---------- State ---------- */
-let state = load();
+let state; // set by load() below
 let currentDeadline = null;     // Date of the active period's deadline
 let currentDeadlineDays = null; // days left until it
+let formDraft = null;           // pending correction/booking prefill for the ledger form
+let reportRangeMode = 'period'; // 'period' | 'year' | 'all' — transient, not persisted
 
 function defaultState() {
   return {
     settings: { name: '', org: '', period: 'kvartal', start: '', deadlineOverride: '', notify: false },
-    receipts: [],          // {id, verNr, date, type, party, desc, exkl, vat, total, rate, fileData, note, createdAt}
-    calculations: [],      // {id, ts, label, type, amount, inclusive, rate, exkl, vat, total, bookedId}
+    ledger: [],             // immutable verifikationer, see addLedgerEntry() for shape
+    calculations: [],       // saved momskalkylator-uträkningar: {id, ts, date, label, type, gross, rate, net, vat, bookedId}
     notes: '',
-    importedIds: {},       // Stripe balance-transaction ids already imported (dedupe)
-    checks: {},            // { 'periodKey': [bool x5] }
-    activePeriod: null,    // periodKey string, null = current
+    importedIds: {},        // Stripe balance-transaction ids already imported (dedupe)
+    checks: {},             // { 'periodKey': [bool x5] }
+    activePeriod: null,     // periodKey string, null = current
   };
 }
+
+// Every place data enters the app (first load, restore-from-file, cloud pull)
+// goes through this so migration and gapless renumbering happen exactly once,
+// consistently. Never mutates a ledger entry's meaning — only fills in fields
+// that didn't exist in older data formats.
+function migrateState(raw) {
+  // Check the RAW input for a ledger before merging with defaultState() —
+  // defaultState() always supplies ledger: [], so checking the merged
+  // object would never detect legacy data that lacks a ledger key at all.
+  const hasLedgerAlready = raw && Array.isArray(raw.ledger);
+  const s = Object.assign(defaultState(), raw);
+
+  if (!hasLedgerAlready) {
+    // Coming from the pre-ledger "receipts" model. Renumber gaplessly by
+    // date/verNr/createdAt order — required because receipts could
+    // previously be deleted, which could leave gaps in verNr.
+    const old = Array.isArray(s.receipts) ? s.receipts.slice() : [];
+    old.sort((a, b) =>
+      (a.date || '').localeCompare(b.date || '') ||
+      (a.verNr || 0) - (b.verNr || 0) ||
+      (a.createdAt || '').localeCompare(b.createdAt || ''));
+    s.ledger = old.map((r, i) => ({
+      id: r.id || ('v' + i),
+      verNr: i + 1,
+      txDate: r.date || new Date().toISOString().slice(0, 10),
+      createdAt: r.createdAt || new Date().toISOString(),
+      type: r.type === 'forsaljning' ? 'forsaljning' : 'inkop',
+      desc: r.desc || '',
+      party: r.party || '',
+      gross: typeof r.total === 'number' ? r.total : (r.exkl || 0) + (r.vat || 0),
+      rate: r.rate || 0,
+      net: typeof r.exkl === 'number' ? r.exkl : (typeof r.total === 'number' ? r.total : 0),
+      vat: r.vat || 0,
+      account: 'okänt',
+      ref: '',
+      fileData: r.fileData || '',
+      note: r.note || '',
+      reverse: !!r.reverse,
+      correctionOf: null,
+      source: 'migrerad',
+    }));
+    delete s.receipts;
+    s._migratedNotice = true;
+  }
+
+  // Legacy Stripe fees booked before reverse-charge support existed.
+  s.ledger.forEach(e => {
+    if (e.desc === 'Stripe-avgift' && e.type === 'inkop' && !e.reverse) e.reverse = true;
+  });
+
+  // Calculator entries: migrate old {amount, inclusive, exkl, total} shape to
+  // the gross-first shape. `total` already held the gross figure either way.
+  s.calculations = (s.calculations || []).map(c => ({
+    id: c.id,
+    ts: c.ts,
+    date: c.date || new Date(c.ts || Date.now()).toISOString().slice(0, 10),
+    label: c.label || 'Uträkning',
+    type: c.type === 'inkop' ? 'inkop' : 'forsaljning',
+    gross: typeof c.gross === 'number' ? c.gross : (c.total || 0),
+    rate: c.rate,
+    net: typeof c.net === 'number' ? c.net : (c.exkl || 0),
+    vat: c.vat || 0,
+    bookedId: c.bookedId || null,
+  }));
+
+  return s;
+}
+
 function load() {
   try {
     const raw = localStorage.getItem(STORE_KEY);
     if (!raw) return defaultState();
-    const s = Object.assign(defaultState(), JSON.parse(raw));
-    // Migration: earlier Stripe fees were booked as plain 0 % — mark them as
-    // EU reverse-charge so rutorna 21/30/48 are complete (does not change ruta 49).
-    (s.receipts || []).forEach(r => {
-      if (r.desc === 'Stripe-avgift' && r.type === 'inkop' && !r.reverse) r.reverse = true;
-    });
-    return s;
+    return migrateState(JSON.parse(raw));
   } catch { return defaultState(); }
 }
+state = load();
+
 function save(opts) {
   state.updatedAt = Date.now();
   try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
@@ -1034,16 +1189,16 @@ function save(opts) {
 
 /* ---------- Money & VAT helpers ---------- */
 const kr = (n) => (Math.round(n) || 0).toLocaleString('sv-SE') + ' kr';
-const krSigned = (n) => (n > 0 ? '+' : '') + kr(n);
 
-function computeVat(amount, rate, inclusive) {
-  const r = rate / 100;
-  if (rate === 0) return { exkl: amount, vat: 0, total: amount };
-  if (inclusive === 'inkl') {
-    const exkl = amount / (1 + r);
-    return { exkl, vat: amount - exkl, total: amount };
-  }
-  return { exkl: amount, vat: amount * r, total: amount + amount * r };
+// Backwards VAT calculation from a gross (brutto) amount — the only direction
+// entries are ever entered, per bokföringslagen-friendly gross-input design.
+// Works for negative gross too (correction/stornering entries), since the
+// identity gross = net + vat holds regardless of sign.
+function vatFromGross(gross, rate) {
+  const r = Number(rate) / 100;
+  if (!rate) return { net: gross, vat: 0 };
+  const net = gross / (1 + r);
+  return { net, vat: gross - net };
 }
 
 /* ---------- Period logic ----------
@@ -1082,8 +1237,7 @@ function deadlineFor(period, key) {
   let day = period === 'helar' ? 26 : 12;
   if (period !== 'helar' && (dueMonth === 0 || dueMonth === 7)) day = 17; // Jan/Aug
   const d = new Date(dueYear, dueMonth, day);
-  // If the deadline lands on a weekend it moves to the next weekday.
-  while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+  while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1); // weekend -> next weekday
   return d;
 }
 
@@ -1107,20 +1261,13 @@ function periodChoices() {
   const keys = [];
   const now = new Date();
   if (period === 'manad') {
-    for (let i = -5; i <= 1; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-      keys.push(currentPeriodKey('manad', d));
-    }
+    for (let i = -5; i <= 1; i++) keys.push(currentPeriodKey('manad', new Date(now.getFullYear(), now.getMonth() + i, 1)));
   } else if (period === 'helar') {
     for (let i = -2; i <= 1; i++) keys.push(String(now.getFullYear() + i));
   } else {
-    for (let i = -4; i <= 1; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() + i * 3, 1);
-      keys.push(currentPeriodKey('kvartal', d));
-    }
+    for (let i = -4; i <= 1; i++) keys.push(currentPeriodKey('kvartal', new Date(now.getFullYear(), now.getMonth() + i * 3, 1)));
   }
   let unique = [...new Set(keys)];
-  // Hide periods that ended before the company started.
   if (state.settings.start) {
     const start = new Date(state.settings.start + 'T00:00:00');
     const filtered = unique.filter(k => periodRange(period, k).end >= start);
@@ -1129,38 +1276,103 @@ function periodChoices() {
   return unique;
 }
 
-/* ---------- Receipts for active period ---------- */
-function receiptsInPeriod() {
-  const { start, end } = periodRange(state.settings.period, activeKey());
-  return state.receipts.filter(r => {
-    const d = new Date(r.date + 'T00:00:00');
-    return d >= start && d <= end;
-  }).sort((a, b) => a.date.localeCompare(b.date));
+/* ---------- Ledger lookups ---------- */
+function findLedgerById(id) { return state.ledger.find(e => e.id === id); }
+
+function ledgerSorted() {
+  return state.ledger.slice().sort((a, b) => a.verNr - b.verNr);
 }
 
-/* ---------- VAT declaration totals ---------- */
-function declTotals() {
-  const rs = receiptsInPeriod();
-  const t = { sales: 0, u25: 0, u12: 0, u6: 0, ing: 0, euServices: 0, reverseVat: 0 };
-  for (const r of rs) {
-    if (r.type === 'forsaljning') {
-      t.sales += r.exkl;
-      if (r.rate === 25) t.u25 += r.vat;
-      else if (r.rate === 12) t.u12 += r.vat;
-      else if (r.rate === 6) t.u6 += r.vat;
-    } else if (r.reverse) {
-      // EU service purchase (e.g. Stripe fee): buyer self-accounts for VAT.
-      t.euServices += r.exkl;         // ruta 21
-      const rv = r.exkl * 0.25;       // 25 % förvärvsmoms
-      t.reverseVat += rv;             // ruta 30
-      t.ing += rv;                    // ruta 48 (avdragsgill)
-    } else {
-      t.ing += r.vat;
+function ledgerInPeriod() {
+  const { start, end } = periodRange(state.settings.period, activeKey());
+  return ledgerSorted().filter(e => {
+    const d = new Date(e.txDate + 'T00:00:00');
+    return d >= start && d <= end;
+  });
+}
+
+// entries for the Sammanställning/export range toggle: 'period' | 'year' | 'all'
+function reportRangeDates(mode) {
+  if (mode === 'all') return null;
+  if (mode === 'year') {
+    const y = periodRange(state.settings.period, activeKey()).start.getFullYear();
+    return { start: new Date(y, 0, 1), end: new Date(y, 11, 31) };
+  }
+  return periodRange(state.settings.period, activeKey());
+}
+function ledgerInRange(mode) {
+  const range = reportRangeDates(mode);
+  const all = ledgerSorted();
+  if (!range) return all;
+  return all.filter(e => { const d = new Date(e.txDate + 'T00:00:00'); return d >= range.start && d <= range.end; });
+}
+
+/* ---------- Totals: VAT boxes + result (revenue/cost) ---------- */
+function summaryTotals(entries) {
+  const t = {
+    sales: 0, u25: 0, u12: 0, u6: 0, ing: 0, euServices: 0, reverseVat: 0,
+    costNet: 0, insattningar: 0, uttag: 0,
+  };
+  for (const e of entries) {
+    if (e.type === 'forsaljning') {
+      t.sales += e.net;
+      if (e.rate === 25) t.u25 += e.vat;
+      else if (e.rate === 12) t.u12 += e.vat;
+      else if (e.rate === 6) t.u6 += e.vat;
+    } else if (e.type === 'inkop') {
+      t.costNet += e.net;
+      if (e.reverse) {
+        const rv = e.net * 0.25;
+        t.euServices += e.net;
+        t.reverseVat += rv;
+        t.ing += rv;
+      } else {
+        t.ing += e.vat;
+      }
+    } else if (e.type === 'insattning') {
+      t.insattningar += e.gross;
+    } else if (e.type === 'uttag') {
+      t.uttag += e.gross;
     }
   }
   t.utg = t.u25 + t.u12 + t.u6 + t.reverseVat; // ruta 10+11+12+30
-  t.toPay = t.utg - t.ing;                       // ruta 49
+  t.toPay = t.utg - t.ing;                      // ruta 49
+  t.result = t.sales - t.costNet;
   return t;
+}
+
+/* =========================================================
+   Ledger mutation — append-only. There is no edit/delete path;
+   corrections are new entries with correctionOf set.
+   ========================================================= */
+function nextVerNr() {
+  return state.ledger.reduce((m, e) => Math.max(m, e.verNr || 0), 0) + 1;
+}
+
+function addLedgerEntry(input) {
+  const isCapital = input.type === 'insattning' || input.type === 'uttag';
+  const rate = isCapital ? 0 : Number(input.rate) || 0;
+  const { net, vat } = vatFromGross(input.gross, rate);
+  const entry = {
+    id: 'v' + Date.now() + Math.random().toString(36).slice(2, 7),
+    verNr: nextVerNr(),
+    txDate: input.txDate,
+    createdAt: new Date().toISOString(),
+    type: input.type,
+    desc: (input.desc || '').trim(),
+    party: (input.party || '').trim(),
+    gross: input.gross,
+    rate, net, vat,
+    account: input.account || 'annat',
+    ref: (input.ref || '').trim(),
+    fileData: input.fileData || '',
+    note: (input.note || '').trim(),
+    reverse: !isCapital && !!input.reverse,
+    correctionOf: input.correctionOf || null,
+    source: input.source || 'manual',
+  };
+  state.ledger.push(entry);
+  return entry;
 }
 
 /* =========================================================
@@ -1169,9 +1381,10 @@ function declTotals() {
 function renderAll() {
   renderTopbar();
   renderOverview();
-  renderReceiptList();
+  renderLedgerList();
   renderCalcList();
   renderDeclaration();
+  renderSummaryPanel();
   renderSettingsForm();
   document.getElementById('notes').value = state.notes || '';
 }
@@ -1184,14 +1397,13 @@ function renderTopbar() {
 }
 
 function renderOverview() {
-  const t = declTotals();
+  const t = summaryTotals(ledgerInPeriod());
   const override = state.settings.deadlineOverride;
   const dl = override ? new Date(override + 'T00:00:00') : deadlineFor(state.settings.period, activeKey());
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const days = Math.round((dl - today) / 86400000);
 
-  document.getElementById('deadlineDate').textContent =
-    `${dl.getDate()} ${MONTHS[dl.getMonth()]} ${dl.getFullYear()}`;
+  document.getElementById('deadlineDate').textContent = `${dl.getDate()} ${MONTHS[dl.getMonth()]} ${dl.getFullYear()}`;
   const cd = document.getElementById('deadlineCountdown');
   let txt;
   if (days > 1) txt = `Om ${days} dagar`;
@@ -1200,11 +1412,9 @@ function renderOverview() {
   else txt = `${Math.abs(days)} dagar sedan (försenad?)`;
   cd.textContent = txt + (override ? ' · eget datum' : '');
 
-  // Stash for calendar export / notifications.
   currentDeadline = dl;
   currentDeadlineDays = days;
 
-  // Reminder banner: appears when the deadline is close or passed.
   const banner = document.getElementById('reminderBanner');
   const dStr = `${dl.getDate()} ${MONTHS[dl.getMonth()]}`;
   if (days < 0) {
@@ -1227,14 +1437,14 @@ function renderOverview() {
 
   document.getElementById('sumUtg').textContent = kr(t.utg);
   document.getElementById('sumIng').textContent = kr(t.ing);
-  document.getElementById('sumCount').textContent = receiptsInPeriod().length;
+  document.getElementById('sumCount').textContent = ledgerInPeriod().length;
 
   renderChecklist();
 }
 
 const CHECK_ITEMS = [
-  'Samla alla kvitton för perioden',
-  'Kontrollera att momsen stämmer på varje kvitto',
+  'Samla alla underlag för perioden',
+  'Kontrollera att momsen stämmer på varje verifikation',
   'Stäm av summorna under Momsdeklaration',
   'Logga in på Skatteverket och fyll i deklarationen',
   'Betala momsen (eller invänta återbetalning)',
@@ -1260,34 +1470,58 @@ function renderChecklist() {
   document.getElementById('checkProgress').textContent = `${done} / 5 klart`;
 }
 
-function renderReceiptList() {
-  const rs = receiptsInPeriod().slice().reverse();
+function renderLedgerList() {
+  const rs = ledgerInPeriod().slice().reverse();
   const list = document.getElementById('receiptList');
   document.getElementById('receiptCount').textContent = `${rs.length} st`;
   if (!rs.length) {
-    list.innerHTML = `<div class="empty">Inga kvitton i ${periodLabel(state.settings.period, activeKey()).toLowerCase()} än.<br>Lägg till ditt första ovan.</div>`;
+    list.innerHTML = `<div class="empty">Inga verifikationer i ${periodLabel(state.settings.period, activeKey()).toLowerCase()} än.<br>Lägg till din första ovan.</div>`;
     return;
   }
+  // Look up corrections against the FULL ledger, not just this period's
+  // slice — a correction can land in a different period than the error.
+  const correctedBy = {};
+  state.ledger.forEach(e => { if (e.correctionOf) correctedBy[e.correctionOf] = e; });
+
   list.innerHTML = '';
   for (const r of rs) {
     const row = document.createElement('div');
     row.className = 'receipt-row';
     const isSale = r.type === 'forsaljning';
+    const isCapital = r.type === 'insattning' || r.type === 'uttag';
+    const tagClass = isSale ? 'tag-in' : isCapital ? 'tag-capital' : 'tag-out';
     const thumb = r.fileData
       ? `<img class="receipt-thumb" src="${r.fileData}" alt="Kvitto" />`
       : `<span class="receipt-thumb"><svg class="ic"><use href="#i-receipt"/></svg></span>`;
+
+    const metaBits = [fmtDate(r.txDate), esc(r.desc)];
+    if (!isCapital) metaBits.push(r.reverse ? 'omvänd moms 25 %' : r.rate + '% moms');
+    metaBits.push(`konto: ${esc(ACCOUNTS[r.account] || r.account)}`);
+
+    const badges = [];
+    if (r.correctionOf) {
+      const orig = findLedgerById(r.correctionOf);
+      badges.push(`<span class="corr-tag corr-of">Rättelse av #${orig ? orig.verNr : '?'}</span>`);
+    }
+    if (correctedBy[r.id]) {
+      badges.push(`<span class="corr-tag corr-by">→ Rättad, se #${correctedBy[r.id].verNr}</span>`);
+    }
+
     row.innerHTML = `
       ${thumb}
       <div class="receipt-main">
-        <div class="receipt-title">${esc(r.party)} <span class="receipt-tag ${isSale ? 'tag-in' : 'tag-out'}">${isSale ? 'Försäljning' : 'Inköp'}</span></div>
-        <div class="receipt-meta"><span>${fmtDate(r.date)}</span><span>${esc(r.desc)}</span><span>${r.reverse ? 'omvänd moms 25 %' : r.rate + '% moms'}</span></div>
+        <div class="receipt-title">#${r.verNr} · ${esc(r.party || (isCapital ? 'Eget kapital' : 'Okänd motpart'))} <span class="receipt-tag ${tagClass}">${TYPE_LABEL[r.type]}</span> ${badges.join(' ')}</div>
+        <div class="receipt-meta"><span>${metaBits.join('</span><span>')}</span></div>
+        ${r.ref ? `<div class="receipt-ref">Ref: ${esc(r.ref)}</div>` : ''}
       </div>
       <div class="receipt-amt">
-        <div class="a">${kr(r.total)}</div>
-        <div class="v">moms ${kr(r.vat)}</div>
+        <div class="a">${kr(r.gross)}</div>
+        ${isCapital ? '<div class="v">ingen moms</div>' : `<div class="v">moms ${kr(r.vat)}</div>`}
       </div>
-      <button class="receipt-del" aria-label="Ta bort kvitto" data-del="${r.id}"><svg class="ic"><use href="#i-trash"/></svg></button>`;
-    row.querySelector('[data-del]').addEventListener('click', () => deleteReceipt(r.id));
+      <button class="receipt-correct" aria-label="Rätta med ny post" data-correct="${r.id}" title="Rätta med ny post">
+        <svg class="ic"><use href="#i-correct"/></svg>
+      </button>`;
+    row.querySelector('[data-correct]').addEventListener('click', () => correctEntry(r.id));
     list.appendChild(row);
   }
 }
@@ -1309,48 +1543,36 @@ function renderCalcList() {
     const booked = !!c.bookedId;
     row.innerHTML = `
       <div class="calc-row-main">
-        <div class="calc-row-title">${esc(c.label)} <span class="receipt-tag ${isSale ? 'tag-in' : 'tag-out'}">${isSale ? 'Försäljning' : 'Inköp'}</span></div>
-        <div class="calc-row-meta">${esc(c.date ? fmtDate(c.date) : fmtDateTime(c.ts))} · ${c.rate}% moms · exkl ${kr(c.exkl)}</div>
+        <div class="calc-row-title">${esc(c.label)} <span class="receipt-tag ${isSale ? 'tag-in' : 'tag-out'}">${TYPE_LABEL[c.type]}</span></div>
+        <div class="calc-row-meta">${esc(fmtDate(c.date))} · ${c.rate}% moms · netto ${kr(c.net)}</div>
       </div>
       <div class="calc-row-amt">
-        <div class="a">${kr(c.total)}</div>
+        <div class="a">${kr(c.gross)}</div>
         <div class="v">moms ${kr(c.vat)}</div>
       </div>
-      <button class="calc-book" ${booked ? 'disabled' : ''} data-book="${c.id}">${booked ? 'Bokfört ✓' : 'Gör till kvitto'}</button>
-      <button class="receipt-del" aria-label="Ta bort uträkning" data-delcalc="${c.id}"><svg class="ic"><use href="#i-trash"/></svg></button>`;
-    row.querySelector('[data-delcalc]').addEventListener('click', () => deleteCalc(c.id));
-    if (!booked) row.querySelector('[data-book]').addEventListener('click', () => bookCalc(c.id));
+      <button class="calc-book" ${booked ? 'disabled' : ''} data-book="${c.id}">${booked ? 'Bokfört ✓' : 'Bokför som verifikation'}</button>`;
+    if (!booked) row.querySelector('[data-book]').addEventListener('click', () => startBookCalc(c.id));
     list.appendChild(row);
   }
 }
 
-function deleteCalc(id) {
-  state.calculations = state.calculations.filter(c => c.id !== id);
-  save(); renderCalcList(); toast('Uträkning borttagen');
-}
-
-// Turn a saved calculation into a real receipt so it counts in the declaration.
-function bookCalc(id) {
+// Turn a saved calculation into a ledger entry. Since the calculator doesn't
+// collect Motpart/Konto, we route through the ledger form (prefilled) so
+// every verifikation still gets its required fields.
+function startBookCalc(id) {
   const c = state.calculations.find(x => x.id === id);
   if (!c || c.bookedId) return;
-  const rid = 'r' + Date.now() + Math.random().toString(36).slice(2, 6);
-  state.receipts.push({
-    id: rid, verNr: nextVerNr(),
-    date: c.date || new Date(c.ts).toISOString().slice(0, 10),
-    type: c.type, party: c.label || 'Kalkylator', desc: c.label || 'Uträkning',
-    exkl: c.exkl, vat: c.vat, total: c.total, rate: c.rate,
-    fileData: '', note: 'Från momskalkylatorn', createdAt: new Date().toISOString(),
-  });
-  c.bookedId = rid;
-  // Show the period the receipt landed in, so it's never "invisible".
-  const k = currentPeriodKey(state.settings.period, new Date((c.date || new Date(c.ts).toISOString().slice(0, 10)) + 'T00:00:00'));
-  state.activePeriod = (k === currentPeriodKey(state.settings.period)) ? null : k;
-  save(); renderAll();
-  toast(`Tillagt som kvitto i ${periodLabel(state.settings.period, k)} ✓`);
+  formDraft = {
+    calcId: c.id,
+    type: c.type, txDate: c.date, desc: c.label, gross: c.gross, rate: c.rate,
+    bannerText: `📋 Bokför uträkning "${esc(c.label)}" — komplettera motpart och konto, kontrollera sedan och bokför.`,
+  };
+  navTo('kvitton');
+  applyFormDraft();
 }
 
 function renderDeclaration() {
-  const t = declTotals();
+  const t = summaryTotals(ledgerInPeriod());
   const rows = [
     ['05', 'Momspliktig försäljning (exkl. moms)', t.sales],
     ['10', 'Utgående moms 25 %', t.u25],
@@ -1378,6 +1600,29 @@ function renderDeclaration() {
   ).join('');
 }
 
+function reportRangeLabel(mode) {
+  if (mode === 'all') return 'hela din bokföring';
+  if (mode === 'year') return `helåret ${periodRange(state.settings.period, activeKey()).start.getFullYear()}`;
+  return periodLabel(state.settings.period, activeKey()).toLowerCase();
+}
+
+function renderSummaryPanel() {
+  const panel = document.getElementById('summaryPanel');
+  if (!panel) return;
+  document.querySelectorAll('.report-toggle button').forEach(b =>
+    b.classList.toggle('active', b.dataset.range === reportRangeMode));
+  const t = summaryTotals(ledgerInRange(reportRangeMode));
+  document.getElementById('sumRangeLabel').textContent = `Sammanställning för ${reportRangeLabel(reportRangeMode)}`;
+  document.getElementById('sRevenue').textContent = kr(t.sales);
+  document.getElementById('sCost').textContent = kr(t.costNet);
+  document.getElementById('sResult').textContent = kr(t.result);
+  document.getElementById('sUtg').textContent = kr(t.utg);
+  document.getElementById('sIng').textContent = kr(t.ing);
+  document.getElementById('sToPay').textContent = (t.toPay >= 0 ? 'Att betala: ' : 'Att få tillbaka: ') + kr(Math.abs(t.toPay));
+  document.getElementById('sInsattning').textContent = kr(t.insattningar);
+  document.getElementById('sUttag').textContent = kr(t.uttag);
+}
+
 function renderSettingsForm() {
   document.getElementById('setName').value = state.settings.name;
   document.getElementById('setOrg').value = state.settings.org;
@@ -1387,19 +1632,70 @@ function renderSettingsForm() {
 }
 
 /* =========================================================
+   Correction flow ("Rätta med ny post")
+   ========================================================= */
+function correctEntry(id) {
+  const orig = findLedgerById(id);
+  if (!orig) return;
+  const msg = `Detta förbereder en NY post som stornerar (nollställer) verifikation #${orig.verNr}.\n\n` +
+    `Den ursprungliga posten ändras eller tas INTE bort — så kräver bokföringslagen. ` +
+    `Du kontrollerar och bokför rättelsen på nästa sida.\n\nFortsätta?`;
+  if (!confirm(msg)) return;
+  formDraft = {
+    correctionOf: orig.id,
+    type: orig.type,
+    txDate: new Date().toISOString().slice(0, 10),
+    party: orig.party,
+    desc: `Rättelse (stornering) av verifikation #${orig.verNr}: ${orig.desc}`,
+    gross: -orig.gross,
+    rate: orig.rate,
+    account: orig.account,
+    reverse: orig.reverse,
+    bannerText: `🔧 Rättar verifikation #${orig.verNr} — beloppet är förifyllt med motsatt tecken (stornering). Kontrollera och bokför.`,
+  };
+  navTo('kvitton');
+  applyFormDraft();
+}
+
+function applyFormDraft() {
+  if (!formDraft) return;
+  const form = document.getElementById('receiptForm');
+  const banner = document.getElementById('correctionBanner');
+  banner.hidden = false;
+  banner.textContent = formDraft.bannerText || '';
+  const cancelBtn = document.createElement('button');
+  cancelBtn.type = 'button'; cancelBtn.className = 'corr-cancel'; cancelBtn.textContent = 'Avbryt';
+  cancelBtn.addEventListener('click', clearFormDraft);
+  banner.appendChild(document.createElement('br'));
+  banner.appendChild(cancelBtn);
+
+  form.type.value = formDraft.type;
+  updateFormForType();
+  if (formDraft.txDate) form.date.value = formDraft.txDate;
+  if (formDraft.party != null) form.party.value = formDraft.party;
+  if (formDraft.desc != null) form.desc.value = formDraft.desc;
+  form.amount.value = formDraft.gross;
+  if (formDraft.rate != null) form.rate.value = String(formDraft.rate);
+  if (formDraft.account) form.account.value = formDraft.account;
+  document.getElementById('rfReverse').checked = !!formDraft.reverse;
+  updateReverseLock();
+  updateCalcPreview();
+  document.getElementById('rfAmount').focus();
+}
+
+function clearFormDraft() {
+  formDraft = null;
+  const banner = document.getElementById('correctionBanner');
+  banner.hidden = true; banner.textContent = '';
+  document.getElementById('receiptForm').reset();
+  updateFormForType();
+  document.getElementById('rfDate').value = new Date().toISOString().slice(0, 10);
+  updateCalcPreview();
+}
+
+/* =========================================================
    Actions
    ========================================================= */
-function deleteReceipt(id) {
-  if (!confirm('Ta bort det här kvittot?')) return;
-  state.receipts = state.receipts.filter(r => r.id !== id);
-  save(); renderAll(); toast('Kvitto borttaget');
-}
-
-function nextVerNr() {
-  const max = state.receipts.reduce((m, r) => Math.max(m, r.verNr || 0), 0);
-  return max + 1;
-}
-
 /* ---------- Image compression to keep localStorage small ---------- */
 function compressImage(file) {
   return new Promise((resolve) => {
@@ -1432,8 +1728,7 @@ function compressImage(file) {
    ========================================================= */
 function navTo(view) {
   document.querySelectorAll('.view').forEach(v => v.hidden = v.id !== 'view-' + view);
-  document.querySelectorAll('[data-view]').forEach(n =>
-    n.classList.toggle('active', n.dataset.view === view));
+  document.querySelectorAll('[data-view]').forEach(n => n.classList.toggle('active', n.dataset.view === view));
   if (location.hash !== '#' + view) history.replaceState(null, '', '#' + view);
   window.scrollTo(0, 0);
 }
@@ -1444,7 +1739,75 @@ function setupNav() {
   document.querySelectorAll('[data-goto]').forEach(b =>
     b.addEventListener('click', () => navTo(b.dataset.goto)));
   const start = (location.hash || '#oversikt').slice(1);
-  navTo(['oversikt','kvitton','kalkylator','deklaration','anteckningar','installningar'].includes(start) ? start : 'oversikt');
+  navTo(['oversikt', 'kvitton', 'kalkylator', 'deklaration', 'anteckningar', 'installningar'].includes(start) ? start : 'oversikt');
+}
+
+function updateFormForType() {
+  const form = document.getElementById('receiptForm');
+  const type = form.type.value;
+  const isCapital = type === 'insattning' || type === 'uttag';
+  const isSale = type === 'forsaljning';
+
+  document.getElementById('rfPartyField').classList.toggle('is-optional', isCapital);
+  form.party.required = !isCapital;
+  document.querySelector('#rfPartyField label').innerHTML =
+    isCapital ? 'Motpart <span class="muted small">(t.ex. bank, valfritt)</span>' : 'Motpart <span class="muted small">(kund/leverantör)</span>';
+
+  document.getElementById('rfRateField').hidden = isCapital;
+  document.getElementById('rfReverseField').hidden = isCapital || isSale;
+  if (isCapital) document.getElementById('rfReverse').checked = false;
+
+  document.getElementById('rfAmountLabel').textContent = isCapital ? 'Belopp' : 'Bruttobelopp (inkl. moms)';
+
+  const accSel = form.account;
+  const keepVal = accSel.value;
+  accSel.innerHTML = Object.entries(ACCOUNTS)
+    .filter(([code]) => !(isCapital && code === 'privat'))
+    .map(([code, label]) => `<option value="${code}">${label}</option>`).join('');
+  accSel.value = Object.prototype.hasOwnProperty.call(ACCOUNTS, keepVal) && accSel.querySelector(`option[value="${keepVal}"]`) ? keepVal : 'firmakonto';
+
+  updateReverseLock();
+}
+
+function updateReverseLock() {
+  const rate = document.getElementById('rfRate');
+  const reverse = document.getElementById('rfReverse');
+  if (reverse.hidden || reverse.closest('#rfReverseField').hidden) return;
+  if (reverse.checked) { rate.value = '0'; rate.disabled = true; }
+  else { rate.disabled = false; }
+}
+
+function readFormInputs(form) {
+  return {
+    type: form.type.value,
+    txDate: form.date.value,
+    party: form.party.value.trim(),
+    desc: form.desc.value.trim(),
+    gross: parseFloat(String(form.amount.value).replace(',', '.')) || 0,
+    rate: Number(form.rate.value),
+    account: form.account.value,
+    reverse: !document.getElementById('rfReverseField').hidden && document.getElementById('rfReverse').checked,
+    ref: form.ref.value.trim(),
+    note: form.note.value.trim(),
+  };
+}
+
+function updateCalcPreview() {
+  const form = document.getElementById('receiptForm');
+  const v = readFormInputs(form);
+  const isCapital = v.type === 'insattning' || v.type === 'uttag';
+  const preview = document.getElementById('calcPreview');
+  if (isCapital) {
+    preview.innerHTML = `<span>Ingen moms — påverkar inte momsen eller resultatet.</span>`;
+    return;
+  }
+  const rate = v.reverse ? 0 : v.rate;
+  const { net, vat } = vatFromGross(v.gross, rate);
+  let html = `<span>Nettobelopp: <strong>${kr(net)}</strong></span>` +
+    `<span>Moms: <strong>${kr(vat)}</strong></span>` +
+    `<span>Brutto: <strong>${kr(v.gross)}</strong></span>`;
+  if (v.reverse) html += `<span>+ Omvänd moms 25 %: <strong>${kr(net * 0.25)}</strong> (rutorna 21/30/48)</span>`;
+  preview.innerHTML = html;
 }
 
 function setupReceiptForm() {
@@ -1452,52 +1815,60 @@ function setupReceiptForm() {
   const dateEl = document.getElementById('rfDate');
   dateEl.value = new Date().toISOString().slice(0, 10);
 
-  const readInputs = () => ({
-    amount: parseFloat(String(form.amount.value).replace(',', '.')) || 0,
-    rate: Number(form.rate.value),
-    inclusive: form.inclusive.value,
-  });
-  const updatePreview = () => {
-    const { amount, rate, inclusive } = readInputs();
-    const c = computeVat(amount, rate, inclusive);
-    document.getElementById('calcVat').textContent = kr(c.vat);
-    document.getElementById('calcExcl').textContent = kr(c.exkl);
-    document.getElementById('calcTotal').textContent = kr(c.total);
-  };
-  form.addEventListener('input', updatePreview);
-  updatePreview();
+  form.type.addEventListener('change', () => { updateFormForType(); updateCalcPreview(); });
+  document.getElementById('rfReverse').addEventListener('change', () => { updateReverseLock(); updateCalcPreview(); });
+  form.addEventListener('input', updateCalcPreview);
+  updateFormForType();
+  updateCalcPreview();
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const { amount, rate, inclusive } = readInputs();
-    if (amount <= 0) { toast('Fyll i ett belopp'); return; }
-    const c = computeVat(amount, rate, inclusive);
+    const v = readFormInputs(form);
+    const isCorrection = !!(formDraft && formDraft.correctionOf);
+    if (v.gross === 0) { toast('Fyll i ett belopp'); return; }
+    if (!isCorrection && v.gross < 0) { toast('Beloppet ska vara positivt. Använd "Rätta" på posten du vill korrigera.'); return; }
+    const isCapital = v.type === 'insattning' || v.type === 'uttag';
+    if (!isCapital && !v.party) { toast('Motpart krävs för försäljning/inköp'); form.party.focus(); return; }
+    if (!v.desc) { toast('Fyll i vad det avser'); form.desc.focus(); return; }
+
     const fileData = await compressImage(form.file.files[0]);
-    state.receipts.push({
-      id: 'r' + Date.now() + Math.random().toString(36).slice(2, 6),
-      verNr: nextVerNr(),
-      date: form.date.value,
-      type: form.type.value,
-      party: form.party.value.trim(),
-      desc: form.desc.value.trim(),
-      exkl: c.exkl, vat: c.vat, total: c.total, rate,
-      fileData,
-      note: form.note.value.trim(),
-      createdAt: new Date().toISOString(),
+    const entry = addLedgerEntry({
+      type: v.type, txDate: v.txDate, party: v.party, desc: v.desc,
+      gross: v.gross, rate: v.rate, account: v.account, reverse: v.reverse,
+      ref: v.ref, fileData, note: v.note,
+      correctionOf: formDraft && formDraft.correctionOf ? formDraft.correctionOf : null,
     });
+
+    if (formDraft && formDraft.calcId) {
+      const c = state.calculations.find(x => x.id === formDraft.calcId);
+      if (c) c.bookedId = entry.id;
+    }
+    const wasDraft = !!formDraft;
+    formDraft = null;
+    document.getElementById('correctionBanner').hidden = true;
+
     save();
     form.reset();
     dateEl.value = new Date().toISOString().slice(0, 10);
-    updatePreview();
+    updateFormForType();
+    updateCalcPreview();
+
+    // Jump to the period the new entry lands in, so it's never invisible.
+    const k = currentPeriodKey(state.settings.period, new Date(entry.txDate + 'T00:00:00'));
+    state.activePeriod = (k === currentPeriodKey(state.settings.period)) ? null : k;
+    save();
     renderAll();
-    toast('Kvitto sparat ✓');
+    toast(`Verifikation #${entry.verNr} bokförd${wasDraft ? '' : ''} ✓`);
   });
-  form.addEventListener('reset', () => setTimeout(updatePreview, 0));
+  form.addEventListener('reset', () => {
+    formDraft = null;
+    document.getElementById('correctionBanner').hidden = true;
+    setTimeout(() => { updateFormForType(); updateCalcPreview(); }, 0);
+  });
 }
 
 function setupCalculator() {
   const amount = document.getElementById('cAmount');
-  const incl = document.getElementById('cIncl');
   const rate = document.getElementById('cRate');
   const what = document.getElementById('cWhat');
   const dateEl = document.getElementById('cDate');
@@ -1505,8 +1876,7 @@ function setupCalculator() {
   dateEl.value = new Date().toISOString().slice(0, 10);
 
   const read = () => ({
-    amount: parseFloat(String(amount.value).replace(',', '.')) || 0,
-    inclusive: incl.value,
+    gross: parseFloat(String(amount.value).replace(',', '.')) || 0,
     rate: Number(rate.value),
     type: view.querySelector('input[name="ctype"]:checked').value,
     label: what.value.trim() || 'Uträkning',
@@ -1514,15 +1884,15 @@ function setupCalculator() {
   });
   const update = () => {
     const v = read();
-    const c = computeVat(v.amount, v.rate, v.inclusive);
-    document.getElementById('cExcl').textContent = kr(c.exkl);
-    document.getElementById('cVat').textContent = kr(c.vat);
-    document.getElementById('cTotal').textContent = kr(c.total);
+    const { net, vat } = vatFromGross(v.gross, v.rate);
+    document.getElementById('cExcl').textContent = kr(net);
+    document.getElementById('cVat').textContent = kr(vat);
+    document.getElementById('cTotal').textContent = kr(v.gross);
     document.getElementById('cRateLbl').textContent = `(${v.rate} %)`;
     const ctx = document.getElementById('cContext');
     const isInkop = v.type === 'inkop';
     document.getElementById('cContextLabel').textContent = isInkop ? 'Moms att få tillbaka' : 'Moms att betala';
-    document.getElementById('cContextVal').textContent = kr(c.vat);
+    document.getElementById('cContextVal').textContent = kr(vat);
     ctx.classList.toggle('is-refund', isInkop);
     ctx.classList.toggle('is-pay', !isInkop);
   };
@@ -1532,19 +1902,24 @@ function setupCalculator() {
 
   document.getElementById('calcSave').addEventListener('click', () => {
     const v = read();
-    if (v.amount <= 0) { toast('Fyll i ett belopp'); amount.focus(); return; }
-    const c = computeVat(v.amount, v.rate, v.inclusive);
+    if (!(v.gross > 0)) { toast('Fyll i ett belopp'); amount.focus(); return; }
+    const { net, vat } = vatFromGross(v.gross, v.rate);
     state.calculations.push({
       id: 'c' + Date.now() + Math.random().toString(36).slice(2, 6),
-      ts: Date.now(), date: v.date,
-      label: v.label, type: v.type, amount: v.amount, inclusive: v.inclusive, rate: v.rate,
-      exkl: c.exkl, vat: c.vat, total: c.total, bookedId: null,
+      ts: Date.now(), date: v.date, label: v.label, type: v.type,
+      gross: v.gross, rate: v.rate, net, vat, bookedId: null,
     });
     save();
     amount.value = ''; what.value = '';
     dateEl.value = new Date().toISOString().slice(0, 10);
     update(); renderCalcList();
     toast('Uträkning sparad ✓');
+  });
+}
+
+function setupReportToggle() {
+  document.querySelectorAll('.report-toggle button').forEach(b => {
+    b.addEventListener('click', () => { reportRangeMode = b.dataset.range; renderSummaryPanel(); });
   });
 }
 
@@ -1564,11 +1939,10 @@ function setupSettings() {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `moms-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.download = `moms-backup-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
   });
-  // Share the full data file to another device (sms/mejl/AirDrop), with
-  // download as fallback where Web Share isn't available (e.g. desktop).
+
   document.getElementById('shareDataBtn').addEventListener('click', async () => {
     const json = JSON.stringify(state, null, 2);
     const fname = `moms-data-${new Date().toISOString().slice(0, 10)}.json`;
@@ -1594,16 +1968,12 @@ function setupSettings() {
     reader.onload = () => {
       try {
         const incoming = JSON.parse(reader.result);
-        if (!incoming || typeof incoming !== 'object' || !Array.isArray(incoming.receipts)) {
+        if (!incoming || typeof incoming !== 'object' || !(Array.isArray(incoming.ledger) || Array.isArray(incoming.receipts))) {
           toast('Det där ser inte ut som en Moms-datafil.'); return;
         }
-        const hasData = state.receipts.length || state.calculations.length || state.notes;
+        const hasData = state.ledger.length || state.calculations.length || state.notes;
         if (hasData && !confirm('Den här enheten har redan data. Ersätta den med filens innehåll?')) return;
-        state = Object.assign(defaultState(), incoming);
-        // Same migration as load(): flag old Stripe fees as reverse charge.
-        state.receipts.forEach(r => {
-          if (r.desc === 'Stripe-avgift' && r.type === 'inkop' && !r.reverse) r.reverse = true;
-        });
+        state = migrateState(incoming);
         save(); renderAll(); toast('Data inläst ✓'); navTo('oversikt');
       } catch { toast('Kunde inte läsa filen'); }
       e.target.value = '';
@@ -1637,7 +2007,7 @@ function setupPeriodSheet() {
       const btn = document.createElement('button');
       btn.className = 'period-opt' + (key === cur ? ' active' : '');
       const dl = deadlineFor(state.settings.period, key);
-      btn.innerHTML = `<span>${periodLabel(state.settings.period, key)}</span><span class="muted small">deadline ${dl.getDate()}/${dl.getMonth()+1}</span>`;
+      btn.innerHTML = `<span>${periodLabel(state.settings.period, key)}</span><span class="muted small">deadline ${dl.getDate()}/${dl.getMonth() + 1}</span>`;
       btn.addEventListener('click', () => {
         state.activePeriod = (key === currentPeriodKey(state.settings.period)) ? null : key;
         save(); renderAll(); closeSheet();
@@ -1670,9 +2040,7 @@ function saveSyncCfg() {
 function b64encodeUtf8(str) {
   const bytes = new TextEncoder().encode(str);
   let bin = '';
-  for (let i = 0; i < bytes.length; i += 0x8000) {
-    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
-  }
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
   return btoa(bin);
 }
 
@@ -1712,16 +2080,12 @@ async function syncPull() {
   return r.json();
 }
 
-// Pull from the cloud and apply if the cloud copy is newer than ours.
 async function syncPullApply() {
   if (!syncCfg || syncBusy) return;
   try {
     const remote = await syncPull();
     if (remote && (remote.updatedAt || 0) > (state.updatedAt || 0)) {
-      state = Object.assign(defaultState(), remote);
-      state.receipts.forEach(r => {
-        if (r.desc === 'Stripe-avgift' && r.type === 'inkop' && !r.reverse) r.reverse = true;
-      });
+      state = migrateState(remote);
       save({ skipSync: true });
       renderAll();
       toast('Hämtade senaste datan från molnet ✓');
@@ -1751,21 +2115,16 @@ async function enableSync(token) {
   delete syncCfg.lastSync;
   saveSyncCfg();
 
-  // First connect: decide direction.
   const remote = await syncPull().catch(() => null);
-  const localHasData = state.receipts.length || state.calculations.length || state.notes;
-  if (remote && (remote.receipts || []).length && !localHasData) {
-    state = Object.assign(defaultState(), remote);
+  const localHasData = state.ledger.length || state.calculations.length || state.notes;
+  if (remote && (remote.ledger || remote.receipts || []).length && !localHasData) {
+    state = migrateState(remote);
     save({ skipSync: true }); renderAll();
     toast('Hämtade din data från molnet ✓');
-  } else if (remote && (remote.receipts || []).length && localHasData) {
+  } else if (remote && (remote.ledger || remote.receipts || []).length && localHasData) {
     const useCloud = confirm('Det finns redan data i molnet OCH på den här enheten.\n\nOK = använd molnets data (ersätter enhetens)\nAvbryt = skriv över molnet med den här enhetens data');
-    if (useCloud) {
-      state = Object.assign(defaultState(), remote);
-      save({ skipSync: true }); renderAll();
-    } else {
-      await syncPush();
-    }
+    if (useCloud) { state = migrateState(remote); save({ skipSync: true }); renderAll(); }
+    else { await syncPush(); }
   } else {
     await syncPush();
   }
@@ -1789,7 +2148,7 @@ function renderSyncPanel(errMsg) {
       st.textContent = 'Moln-synk är på ✓';
       const when = syncCfg.lastSync ? new Date(syncCfg.lastSync) : null;
       info.textContent = `Sparas automatiskt till ett privat arkiv (${syncCfg.repo})` +
-        (when ? ` · senast synkad ${String(when.getHours()).padStart(2,'0')}:${String(when.getMinutes()).padStart(2,'0')}` : '');
+        (when ? ` · senast synkad ${String(when.getHours()).padStart(2, '0')}:${String(when.getMinutes()).padStart(2, '0')}` : '');
     }
   }
 }
@@ -1820,7 +2179,6 @@ function setupCloudSync() {
     if (!confirm('Koppla från moln-synk på den här enheten? Datan i molnet och på enheten finns kvar.')) return;
     syncCfg = null; saveSyncCfg(); renderSyncPanel(); toast('Moln-synk frånkopplad');
   });
-  // Catch changes made on the other device when returning to the app.
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') syncPullApply();
   });
@@ -1872,8 +2230,34 @@ function maybeNotify(force) {
   });
 }
 
+function setupReminders() {
+  document.getElementById('icsBtn').addEventListener('click', downloadIcs);
+  document.getElementById('notifyBtn').addEventListener('click', async () => {
+    if (!('Notification' in window)) { toast('Din webbläsare stödjer inte notiser'); return; }
+    if (state.settings.notify) {
+      state.settings.notify = false; save(); renderOverview(); toast('Påminnelser av');
+      return;
+    }
+    const perm = await Notification.requestPermission();
+    if (perm === 'granted') {
+      state.settings.notify = true; save(); renderOverview();
+      toast('Påminnelser på 🔔'); maybeNotify(true);
+    } else {
+      toast('Notiser blockerade i webbläsaren');
+    }
+  });
+}
+
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+function setupHints() {
+  document.querySelectorAll('.hint').forEach(h => h.addEventListener('click', () => toast(h.dataset.hint, 3500)));
+}
+
 /* ---------- Stripe CSV import ---------- */
-// Minimal CSV parser handling quotes ("") and , or ; delimiters.
 function parseCsv(text) {
   text = text.replace(/^﻿/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   const firstLine = text.slice(0, text.indexOf('\n') < 0 ? text.length : text.indexOf('\n'));
@@ -1896,8 +2280,8 @@ function parseCsv(text) {
 function numSv(s) {
   if (s == null) return 0;
   s = String(s).replace(/[^\d.,-]/g, '');
-  if (s.indexOf(',') > -1 && s.indexOf('.') > -1) s = s.replace(/,/g, '');       // 1,234.56
-  else if (s.indexOf(',') > -1) s = s.replace(',', '.');                          // 12,34
+  if (s.indexOf(',') > -1 && s.indexOf('.') > -1) s = s.replace(/,/g, '');
+  else if (s.indexOf(',') > -1) s = s.replace(',', '.');
   const n = parseFloat(s);
   return isNaN(n) ? 0 : n;
 }
@@ -1911,7 +2295,6 @@ function toIsoDate(s) {
   return isNaN(d) ? new Date().toISOString().slice(0, 10) : d.toISOString().slice(0, 10);
 }
 
-// Pick the transaction-date column, preferring settlement/created dates over due dates.
 function findDate(headers) {
   for (const re of [/available.?on/, /created.*utc/, /^created/, /date.*utc/, /date/]) {
     const i = headers.findIndex(h => re.test(h) && !/due/.test(h));
@@ -1920,7 +2303,6 @@ function findDate(headers) {
   return -1;
 }
 
-// Pick a "who" column, avoiding amount/currency/id columns that contain "customer".
 function findCust(headers) {
   const bad = /(amount|currency|facing|fee|net|gross|number|^id$|_id$|country|zip|postal)/;
   const good = [/customer.?email/, /customer.?name/, /card.?name/, /^customer$/, /^description$/, /statement.?descriptor/];
@@ -1931,7 +2313,6 @@ function findCust(headers) {
   return -1;
 }
 
-// Inspect a parsed Stripe CSV and return import rows + meta.
 function analyzeStripe(rows) {
   if (rows.length < 2) return { error: 'Filen verkar tom eller saknar rader.' };
   const headers = rows[0].map(h => h.trim().toLowerCase());
@@ -1941,7 +2322,6 @@ function analyzeStripe(rows) {
     cat: find(/reporting.?category|^type$/),
     date: findDate(headers),
     gross: find(/^gross$/),
-    net: find(/^net$/),
     fee: find(/^fee$|^fees$/),
     cur: find(/^currency$/),
     convAmt: headers.findIndex(h => /converted.*amount/.test(h) && !/refund/.test(h)),
@@ -1953,7 +2333,6 @@ function analyzeStripe(rows) {
     due: find(/^amount due$/),
     cust: findCust(headers),
   };
-  // An Invoices export has amount-paid/number/subscription but no gross/fee/converted.
   const invoiceLike = col.gross < 0 && col.convAmt < 0 && col.fee < 0 &&
     find(/amount paid|amount due|^number$|subscription/) > -1;
 
@@ -1970,26 +2349,20 @@ function analyzeStripe(rows) {
   for (let r = 1; r < rows.length; r++) {
     const c = rows[r];
     const cat = col.cat > -1 ? (c[col.cat] || '').toLowerCase() : '';
-    if (/payout/.test(cat)) continue;                      // skip the payout line itself
+    if (/payout/.test(cat)) continue;
     const a = amountFromRow(c);
     if (!a) continue;
     if (a.cur && a.cur.toUpperCase() !== 'SEK') curWarn = a.cur.toUpperCase();
     const id = col.id > -1 ? (c[col.id] || '') : '';
     const date = toIsoDate(col.date > -1 ? c[col.date] : '');
-    if (a.gross > 0) {                                      // a sale/charge
+    if (a.gross > 0) {
       const fee = col.fee > -1 ? Math.abs(numSv(c[col.fee])) : 0;
-      items.push({
-        kind: 'sale', id, date, gross: a.gross, fee,
-        party: (col.cust > -1 ? (c[col.cust] || '') : '').trim() || 'Stripe-kund',
-      });
-    } else if (/fee/.test(cat)) {                          // a standalone Stripe fee row
+      items.push({ kind: 'sale', id, date, gross: a.gross, fee, party: (col.cust > -1 ? (c[col.cust] || '') : '').trim() || 'Stripe-kund' });
+    } else if (/fee/.test(cat)) {
       const amt = Math.abs(a.gross) || (col.fee > -1 ? Math.abs(numSv(c[col.fee])) : 0);
       if (amt > 0) items.push({ kind: 'fee', id, date, fee: amt });
     }
-    // refunds / adjustments / zero rows are ignored
   }
-  // Keep a payout together: align standalone fee rows to the sale's date so a
-  // fee and its sale never split across two quarters.
   const saleDates = items.filter(i => i.kind === 'sale').map(i => i.date).sort();
   if (saleDates.length) {
     const anchor = saleDates[saleDates.length - 1];
@@ -2026,12 +2399,12 @@ function setupStripeImport() {
       }
       const incFees = document.getElementById('impFees').checked;
       const isDupe = (i) => i.id && state.importedIds[i.id];
-      const newItems = res.items.filter(i => !isDupe(i));     // what will actually be created
+      const newItems = res.items.filter(i => !isDupe(i));
       const newSales = newItems.filter(i => i.kind === 'sale');
       const dupes = res.items.length - newItems.length;
       const totGross = newSales.reduce((s, i) => s + (i.gross || 0), 0);
       const totFee = newItems.reduce((s, i) => s + (i.fee || 0), 0);
-      const blockImport = !!res.curWarn;                      // don't import non-SEK amounts as SEK
+      const blockImport = !!res.curWarn;
       const nothingNew = newItems.length === 0;
       pendingImport = (blockImport || nothingNew) ? null : res.items;
       const periodsOf = (arr) => [...new Set(arr.map(i =>
@@ -2053,7 +2426,7 @@ function setupStripeImport() {
       }
       preview.innerHTML = `
         <h4>Förhandsgranskning</h4>
-        <div class="imp-stat"><span>Försäljningar ${blockImport ? 'i filen' : 'att skapa'}</span><strong>${(blockImport ? res.items.filter(i=>i.kind==='sale') : newSales).length} st</strong></div>
+        <div class="imp-stat"><span>Försäljningar ${blockImport ? 'i filen' : 'att skapa'}</span><strong>${(blockImport ? res.items.filter(i => i.kind === 'sale') : newSales).length} st</strong></div>
         <div class="imp-stat"><span>Summa försäljning (brutto)</span><strong>${kr(totGross)}</strong></div>
         <div class="imp-stat"><span>Stripe-avgifter ${incFees ? '(skapas som inköp)' : '(hoppas över)'}</span><strong>${kr(totFee)}</strong></div>
         ${dupes ? `<div class="imp-stat"><span>Redan importerade (hoppas över)</span><strong>${dupes} st</strong></div>` : ''}
@@ -2068,32 +2441,35 @@ function setupStripeImport() {
     if (!pendingImport) return;
     const rate = Number(document.getElementById('impRate').value);
     const incFees = document.getElementById('impFees').checked;
-    let ver = nextVerNr();
-    const newId = () => 'r' + Date.now() + Math.random().toString(36).slice(2, 6);
-    const feeReceipt = (date, amt) => ({
-      id: newId(), verNr: ver++, date, type: 'inkop', party: 'Stripe', desc: 'Stripe-avgift',
-      exkl: amt, vat: 0, total: amt, rate: 0, fileData: '', reverse: true,
-      note: 'Importerad från Stripe · EU-tjänst, omvänd skattskyldighet 25 %', createdAt: new Date().toISOString(),
-    });
     let made = 0, skipped = 0, lastSaleDate = null;
     for (const it of pendingImport) {
       if (it.id && state.importedIds[it.id]) { skipped++; continue; }
       if (it.kind === 'fee') {
-        if (incFees && it.fee > 0) state.receipts.push(feeReceipt(it.date, it.fee));
+        if (incFees && it.fee > 0) {
+          addLedgerEntry({
+            type: 'inkop', txDate: it.date, party: 'Stripe', desc: 'Stripe-avgift',
+            gross: it.fee, rate: 0, account: 'firmakonto', reverse: true, ref: it.id,
+            note: 'Importerad från Stripe · EU-tjänst, omvänd skattskyldighet 25 %', source: 'stripe',
+          });
+        }
       } else {
-        const c = computeVat(it.gross, rate, 'inkl');
-        state.receipts.push({
-          id: newId(), verNr: ver++, date: it.date, type: 'forsaljning', party: it.party,
-          desc: 'Stripe-försäljning', exkl: c.exkl, vat: c.vat, total: c.total, rate, fileData: '',
-          note: 'Importerad från Stripe', createdAt: new Date().toISOString(),
+        addLedgerEntry({
+          type: 'forsaljning', txDate: it.date, party: it.party, desc: 'Stripe-försäljning',
+          gross: it.gross, rate, account: 'firmakonto', ref: it.id,
+          note: 'Importerad från Stripe', source: 'stripe',
         });
-        if (incFees && it.fee > 0) state.receipts.push(feeReceipt(it.date, it.fee));
+        if (incFees && it.fee > 0) {
+          addLedgerEntry({
+            type: 'inkop', txDate: it.date, party: 'Stripe', desc: 'Stripe-avgift',
+            gross: it.fee, rate: 0, account: 'firmakonto', reverse: true, ref: it.id,
+            note: 'Importerad från Stripe · EU-tjänst, omvänd skattskyldighet 25 %', source: 'stripe',
+          });
+        }
         lastSaleDate = it.date;
       }
       if (it.id) state.importedIds[it.id] = true;
       made++;
     }
-    // Jump to the period the imported sales belong to, so they're visible.
     let landedNote = '';
     if (lastSaleDate) {
       const k = currentPeriodKey(state.settings.period, new Date(lastSaleDate + 'T00:00:00'));
@@ -2109,42 +2485,18 @@ function setupStripeImport() {
   });
 }
 
-function setupReminders() {
-  document.getElementById('icsBtn').addEventListener('click', downloadIcs);
-  document.getElementById('notifyBtn').addEventListener('click', async () => {
-    if (!('Notification' in window)) { toast('Din webbläsare stödjer inte notiser'); return; }
-    if (state.settings.notify) {
-      state.settings.notify = false; save(); renderOverview(); toast('Påminnelser av');
-      return;
-    }
-    const perm = await Notification.requestPermission();
-    if (perm === 'granted') {
-      state.settings.notify = true; save(); renderOverview();
-      toast('Påminnelser på 🔔'); maybeNotify(true);
-    } else {
-      toast('Notiser blockerade i webbläsaren');
-    }
-  });
-}
+/* =========================================================
+   Export: accountant report (period), full CSV, SIE
+   ========================================================= */
+function accountLabel(code) { return ACCOUNTS[code] || code || '—'; }
 
-function registerServiceWorker() {
-  if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
-  navigator.serviceWorker.register('sw.js').catch(() => {});
-}
-
-function setupHints() {
-  document.querySelectorAll('.hint').forEach(h =>
-    h.addEventListener('click', () => toast(h.dataset.hint, 3500)));
-}
-
-// Build a full-quarter report (summary + every receipt) for the accountant.
 function buildQuarterReport() {
-  const t = declTotals();
+  const t = summaryTotals(ledgerInPeriod());
   const dl = state.settings.deadlineOverride
     ? new Date(state.settings.deadlineOverride + 'T00:00:00')
     : deadlineFor(state.settings.period, activeKey());
   const dlStr = `${dl.getDate()} ${MONTHS[dl.getMonth()]} ${dl.getFullYear()}`;
-  const rs = receiptsInPeriod();
+  const rs = ledgerInPeriod();
   const L = (...cells) => cells.map(csvCell).join(';');
   const lines = [
     L('Momsunderlag', state.settings.name || ''),
@@ -2165,14 +2517,23 @@ function buildQuarterReport() {
     L('48  Ingående moms att dra av', Math.round(t.ing)),
     L(`49  Moms att ${t.toPay >= 0 ? 'betala' : 'få tillbaka'}`, Math.round(Math.abs(t.toPay))),
     '',
+    L('Resultat (informativt)', ''),
+    L('Intäkter, netto', Math.round(t.sales)),
+    L('Kostnader, netto', Math.round(t.costNet)),
+    L('Resultat', Math.round(t.result)),
+    L('Egna insättningar', Math.round(t.insattningar)),
+    L('Egna uttag', Math.round(t.uttag)),
+    '',
     L(`Verifikationer (${rs.length} st)`),
-    L('Vernr', 'Datum', 'Typ', 'Motpart', 'Vad avser', 'Exkl moms', 'Momssats', 'Moms', 'Totalt', 'Anteckning'),
+    L('Vernr', 'Transaktionsdatum', 'Bokfört', 'Typ', 'Motpart', 'Vad avser', 'Bruttobelopp', 'Momssats', 'Nettobelopp', 'Momsbelopp', 'Konto', 'Referens', 'Rättelse av', 'Anteckning'),
     ...rs.map(r => L(
-      r.verNr, r.date,
-      r.type === 'forsaljning' ? 'Försäljning' : (r.reverse ? 'Inköp (EU omvänd moms)' : 'Inköp'),
-      r.party, r.desc, r.exkl.toFixed(2),
-      r.reverse ? 'omvänd 25%' : r.rate + '%',
-      (r.reverse ? r.exkl * 0.25 : r.vat).toFixed(2), r.total.toFixed(2), r.note || ''
+      r.verNr, r.txDate, (r.createdAt || '').slice(0, 16).replace('T', ' '),
+      r.type === 'forsaljning' ? 'Försäljning' : r.type === 'inkop' ? (r.reverse ? 'Inköp (EU omvänd moms)' : 'Inköp') : TYPE_LABEL[r.type],
+      r.party, r.desc, r.gross.toFixed(2),
+      (r.type === 'insattning' || r.type === 'uttag') ? '—' : (r.reverse ? 'omvänd 25%' : r.rate + '%'),
+      r.net.toFixed(2), r.vat.toFixed(2), accountLabel(r.account), r.ref || '',
+      r.correctionOf ? ('#' + (findLedgerById(r.correctionOf)?.verNr ?? '?')) : '',
+      r.note || ''
     )),
   ];
   return '﻿' + lines.join('\r\n');
@@ -2183,13 +2544,127 @@ function quarterFilename() {
   return `momsunderlag-${safe}-${activeKey()}.csv`;
 }
 
+// "Exportera alla poster till CSV" — the full, unfiltered ledger, forever.
+function buildFullLedgerCsv() {
+  const L = (...c) => c.map(csvCell).join(';');
+  const rows = ledgerSorted();
+  const header = L('Vernr', 'Transaktionsdatum', 'Bokfört', 'Typ', 'Motpart', 'Vad avser', 'Bruttobelopp', 'Momssats', 'Nettobelopp', 'Momsbelopp', 'Betalsätt/konto', 'Referens', 'Rättelse av', 'Anteckning');
+  const typeLabel = (e) => e.type === 'forsaljning' ? 'Försäljning' : e.type === 'inkop' ? (e.reverse ? 'Inköp (EU omvänd moms)' : 'Inköp') : TYPE_LABEL[e.type];
+  const lines = rows.map(e => L(
+    e.verNr, e.txDate, (e.createdAt || '').slice(0, 16).replace('T', ' '),
+    typeLabel(e), e.party, e.desc, e.gross.toFixed(2),
+    (e.type === 'insattning' || e.type === 'uttag') ? '—' : (e.reverse ? 'omvänd 25%' : e.rate + '%'),
+    e.net.toFixed(2), e.vat.toFixed(2), accountLabel(e.account), e.ref || '',
+    e.correctionOf ? ('#' + (findLedgerById(e.correctionOf)?.verNr ?? '?')) : '',
+    e.note || ''
+  ));
+  return '﻿' + [header, ...lines].join('\r\n');
+}
+
+function fullCsvFilename() {
+  const safe = (state.settings.name || 'moms').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'moms';
+  return `verifikationer-alla-${safe}.csv`;
+}
+
+/* ---------- SIE4 export (simplified BAS-like account mapping) ---------- */
+const SIE_ACCOUNTS = {
+  '1930': 'Företagskonto', '1910': 'Kassa',
+  '2018': 'Egna insättningar', '2013': 'Egna uttag',
+  '3001': 'Försäljning 25% moms', '3002': 'Försäljning 12% moms', '3003': 'Försäljning 6% moms', '3004': 'Försäljning momsfri',
+  '2610': 'Utgående moms 25%', '2620': 'Utgående moms 12%', '2630': 'Utgående moms 6%',
+  '4000': 'Inköp varor/tjänster', '2640': 'Ingående moms',
+  '2645': 'Ingående moms, omvänd skattskyldighet', '2614': 'Utgående moms, omvänd skattskyldighet',
+};
+
+function sieLinesForEntry(e) {
+  const cash = e.account === 'kontant' ? '1910' : '1930';
+  if (e.type === 'insattning') return [[cash, e.gross], ['2018', -e.gross]];
+  if (e.type === 'uttag') return [['2013', e.gross], [cash, -e.gross]];
+  const counter = e.account === 'privat' ? '2018' : cash;
+  if (e.type === 'forsaljning') {
+    const salesAcc = e.rate === 25 ? '3001' : e.rate === 12 ? '3002' : e.rate === 6 ? '3003' : '3004';
+    const vatAcc = e.rate === 25 ? '2610' : e.rate === 12 ? '2620' : e.rate === 6 ? '2630' : null;
+    const lines = [[cash, e.gross], [salesAcc, -e.net]];
+    if (vatAcc && e.vat) lines.push([vatAcc, -e.vat]);
+    return lines;
+  }
+  if (e.reverse) {
+    const rv = e.net * 0.25;
+    return [['4000', e.net], ['2645', rv], [counter, -e.gross], ['2614', -rv]];
+  }
+  const lines = [['4000', e.net], [counter, -e.gross]];
+  if (e.vat) lines.push(['2640', e.vat]);
+  return lines;
+}
+
+// Swedish letters via CP437 (the SIE-standard encoding) — a small lookup is
+// enough since ledger text is Swedish; anything else falls back to '?'.
+const CP437_MAP = { 'å': 0x86, 'ä': 0x84, 'ö': 0x94, 'Å': 0x8F, 'Ä': 0x8E, 'Ö': 0x99, 'é': 0x82, 'è': 0x8A, 'ü': 0x81, 'É': 0x90 };
+function toCp437Bytes(str) {
+  const bytes = [];
+  for (const ch of String(str)) {
+    const code = ch.codePointAt(0);
+    if (code < 128) bytes.push(code);
+    else if (CP437_MAP[ch] !== undefined) bytes.push(CP437_MAP[ch]);
+    else bytes.push(0x3F);
+  }
+  return new Uint8Array(bytes);
+}
+
+function buildSie(rangeMode) {
+  const entries = ledgerInRange(rangeMode).slice().sort((a, b) => a.verNr - b.verNr);
+  let range = reportRangeDates(rangeMode);
+  if (!range) {
+    if (!entries.length) {
+      const y = new Date().getFullYear();
+      range = { start: new Date(y, 0, 1), end: new Date(y, 11, 31) };
+    } else {
+      const dates = entries.map(e => e.txDate).sort();
+      range = { start: new Date(dates[0] + 'T00:00:00'), end: new Date(dates[dates.length - 1] + 'T00:00:00') };
+    }
+  }
+  const fmtD = (d) => `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}`;
+  const sieStr = (s) => '"' + String(s || '').replace(/"/g, '') + '"';
+  const usedAccounts = new Set();
+  entries.forEach(e => sieLinesForEntry(e).forEach(([acc]) => usedAccounts.add(acc)));
+
+  const lines = [];
+  lines.push('#FLAGGA 0');
+  lines.push(`#PROGRAM ${sieStr('Moms - personligt bokforingsunderlag')} "1.0"`);
+  lines.push('#FORMAT PC8');
+  lines.push(`#GEN ${fmtD(new Date())}`);
+  lines.push('#SIETYP 4');
+  if (state.settings.name) lines.push(`#FNAMN ${sieStr(state.settings.name)}`);
+  if (state.settings.org) lines.push(`#ORGNR ${sieStr(state.settings.org)}`);
+  lines.push(`#RAR 0 ${fmtD(range.start)} ${fmtD(range.end)}`);
+  [...usedAccounts].sort().forEach(acc => lines.push(`#KONTO ${acc} ${sieStr(SIE_ACCOUNTS[acc] || acc)}`));
+
+  for (const e of entries) {
+    const text = e.party ? `${e.desc} - ${e.party}` : e.desc;
+    const regDate = (e.createdAt || e.txDate).slice(0, 10);
+    lines.push(`#VER "A" "${e.verNr}" ${fmtD(new Date(e.txDate + 'T00:00:00'))} ${sieStr(text)} ${fmtD(new Date(regDate + 'T00:00:00'))}`);
+    lines.push('{');
+    for (const [acc, amt] of sieLinesForEntry(e)) lines.push(`   #TRANS ${acc} {} ${amt.toFixed(2)}`);
+    lines.push('}');
+  }
+  return lines.join('\r\n');
+}
+
+function sieFilename(mode) {
+  const safe = (state.settings.name || 'moms').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'moms';
+  return `verifikationer-${safe}-${mode}.sie`;
+}
+
+function downloadBlob(blob, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+
 function setupExport() {
   const download = () => {
-    const blob = new Blob([buildQuarterReport()], { type: 'text/csv;charset=utf-8' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = quarterFilename();
-    a.click();
+    downloadBlob(new Blob([buildQuarterReport()], { type: 'text/csv;charset=utf-8' }), quarterFilename());
     toast('Filen laddades ner ✓');
   };
 
@@ -2200,15 +2675,11 @@ function setupExport() {
     try {
       const file = new File([csv], fname, { type: 'text/csv' });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: `Momsunderlag ${period}`,
-          text: `Momsunderlag för ${period}${state.settings.name ? ' – ' + state.settings.name : ''}.`,
-        });
+        await navigator.share({ files: [file], title: `Momsunderlag ${period}`, text: `Momsunderlag för ${period}${state.settings.name ? ' – ' + state.settings.name : ''}.` });
         return;
       }
     } catch (e) {
-      if (e && e.name === 'AbortError') return; // user cancelled the share sheet
+      if (e && e.name === 'AbortError') return;
     }
     download();
     toast('Delning stöds inte här — filen laddades ner. Bifoga den i ett sms eller mejl.', 4000);
@@ -2216,13 +2687,25 @@ function setupExport() {
 
   document.querySelectorAll('.js-share').forEach(b => b.addEventListener('click', share));
   document.getElementById('downloadBtn').addEventListener('click', download);
+
+  document.getElementById('exportAllCsvBtn').addEventListener('click', () => {
+    if (!state.ledger.length) { toast('Inga verifikationer att exportera än'); return; }
+    downloadBlob(new Blob([buildFullLedgerCsv()], { type: 'text/csv;charset=utf-8' }), fullCsvFilename());
+    toast('Alla verifikationer exporterade ✓');
+  });
+
+  document.getElementById('exportSieBtn').addEventListener('click', () => {
+    if (!ledgerInRange(reportRangeMode).length) { toast('Inga verifikationer i det här intervallet'); return; }
+    const bytes = toCp437Bytes(buildSie(reportRangeMode));
+    downloadBlob(new Blob([bytes], { type: 'application/octet-stream' }), sieFilename(reportRangeMode));
+    toast('SIE-fil exporterad — kontrollera kontona innan import i Bokio m.fl. ✓', 4000);
+  });
 }
 
 /* ---------- Small utils ---------- */
-function esc(s) { return String(s || '').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
+function esc(s) { return String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 function csvCell(s) { s = String(s); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
-function fmtDate(iso) { const d = new Date(iso + 'T00:00:00'); return `${d.getDate()} ${MONTHS[d.getMonth()].slice(0,3)}`; }
-function fmtDateTime(ts) { const d = new Date(ts); return `${d.getDate()} ${MONTHS[d.getMonth()].slice(0,3)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
+function fmtDate(iso) { const d = new Date(iso + 'T00:00:00'); return `${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)}`; }
 let toastTimer;
 function toast(msg, ms = 2200) {
   const t = document.getElementById('toast');
@@ -2237,6 +2720,7 @@ function boot() {
   setupNav();
   setupReceiptForm();
   setupCalculator();
+  setupReportToggle();
   setupSettings();
   setupNotes();
   setupPeriodSheet();
@@ -2249,8 +2733,12 @@ function boot() {
   renderAll();
   maybeNotify(false);
   syncPullApply();
-  // First run: nudge to settings if nothing configured.
-  if (!state.settings.name && !state.receipts.length) {
+
+  if (state._migratedNotice) {
+    delete state._migratedNotice;
+    save();
+    toast('Dina verifikationsnummer har uppdaterats till en obruten löpnummerserie enligt bokföringslagen.', 5000);
+  } else if (!state.settings.name && !state.ledger.length) {
     toast('Välkommen! Ställ in din period under Inställningar ⚙', 3500);
   }
 }
