@@ -799,10 +799,16 @@ function setupReceiptForm() {
     updateFormForType();
     updateCalcPreview();
 
-    // Jump to the period the new entry lands in, so it's never invisible.
-    const k = currentPeriodKey(state.settings.period, new Date(entry.txDate + 'T00:00:00'));
-    state.activePeriod = (k === currentPeriodKey(state.settings.period)) ? null : k;
-    save();
+    // Jump to the period the new entry lands in, so it's never invisible —
+    // except for a correction's step-1 reversal, which is always dated
+    // today and would otherwise yank the view away from the period the
+    // user is actually working in, right before step 2 brings it back.
+    // Skipping the jump here keeps the view stable for the whole wizard.
+    if (!isCorrectionReversal) {
+      const k = currentPeriodKey(state.settings.period, new Date(entry.txDate + 'T00:00:00'));
+      state.activePeriod = (k === currentPeriodKey(state.settings.period)) ? null : k;
+      save();
+    }
     renderAll();
 
     if (isCorrectionReversal && prevDraft.originalEntry) {
